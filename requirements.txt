@@ -1,2 +1,0 @@
-# Application dependencies
-# Tkinter is bundled with most Python installations; no external packages required.
