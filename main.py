@@ -255,20 +255,26 @@ class TimeTrackerApp(tk.Tk):
 
         self.psp_combo = self._build_combobox(fields_frame, "PSP (optional):", self.psp_var)
         self.type_combo = self._build_combobox(fields_frame, "Leistungsart:", self.type_var)
+
         self.time_frame = ttk.Frame(fields_frame)
-        self.time_frame.pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Label(self.time_frame, text="Start:").grid(row=0, column=0, sticky=tk.W)
-        self.start_combo = self._build_time_entry(self.time_frame, self.start_var, row=1, column=0)
+        self.time_frame.pack(side=tk.LEFT, padx=(0, 8), fill=tk.X, expand=True)
+        self.time_frame.grid_columnconfigure(0, weight=1)
 
-        ttk.Label(self.time_frame, text="End:").grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
-        self.end_combo = self._build_time_entry(self.time_frame, self.end_var, row=1, column=1, pad_x=8)
+        self.range_frame = ttk.Frame(self.time_frame)
+        self.range_frame.grid(row=0, column=0, sticky="w")
+        ttk.Label(self.range_frame, text="Start:").grid(row=0, column=0, sticky=tk.W)
+        self.start_combo = self._build_time_entry(self.range_frame, self.start_var, row=1, column=0)
 
-        ttk.Label(self.time_frame, text="Stunden:").grid(row=0, column=2, sticky=tk.W, padx=(8, 0))
-        self.hours_entry = ttk.Entry(self.time_frame, width=10, textvariable=self.hours_var, state="disabled")
-        self.hours_entry.grid(row=1, column=2, padx=(8, 0))
+        ttk.Label(self.range_frame, text="End:").grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
+        self.end_combo = self._build_time_entry(self.range_frame, self.end_var, row=1, column=1, pad_x=8)
+
+        self.duration_frame = ttk.Frame(self.time_frame)
+        ttk.Label(self.duration_frame, text="Stunden:").grid(row=0, column=0, sticky=tk.W)
+        self.hours_entry = ttk.Entry(self.duration_frame, width=10, textvariable=self.hours_var)
+        self.hours_entry.grid(row=1, column=0, padx=(0, 8))
 
         self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", command=self.toggle_time_mode)
-        self.mode_btn.grid(row=1, column=3, padx=(10, 0))
+        self.mode_btn.grid(row=0, column=1, rowspan=2, padx=(10, 0), sticky="e")
 
         desc_frame = ttk.Frame(main_frame)
         desc_frame.pack(fill=tk.X, pady=(0, 12))
@@ -334,6 +340,7 @@ class TimeTrackerApp(tk.Tk):
         ttk.Label(main_frame, textvariable=self.total_var, font=("Arial", 12, "bold")).pack(anchor=tk.E, pady=(8, 0))
 
         self.update_combobox_values()
+        self._apply_time_mode()
 
     def _build_combobox(self, parent, label, variable):
         frame = ttk.Frame(parent)
@@ -607,15 +614,15 @@ class TimeTrackerApp(tk.Tk):
 
     def _apply_time_mode(self):
         if self.time_mode.get() == "duration":
-            self.start_combo.configure(state="disabled")
-            self.end_combo.configure(state="disabled")
+            self.range_frame.grid_remove()
+            self.duration_frame.grid(row=0, column=0, sticky="w")
             self.hours_entry.configure(state="normal")
             self.mode_btn.configure(text="Zu Start/Ende wechseln")
         else:
-            self.start_combo.configure(state="normal")
-            self.end_combo.configure(state="normal")
-            self.hours_entry.configure(state="disabled")
+            self.duration_frame.grid_remove()
+            self.range_frame.grid(row=0, column=0, sticky="w")
             self.hours_var.set("")
+            self.hours_entry.configure(state="disabled")
             self.mode_btn.configure(text="Zu Stunden wechseln")
 
 
