@@ -150,6 +150,8 @@ class TimeTrackerApp(tk.Tk):
         self.desc_var = tk.StringVar()
         self.start_var = tk.StringVar()
         self.end_var = tk.StringVar()
+        self.hours_var = tk.StringVar()
+        self.time_mode = tk.StringVar(value="range")
 
         self._set_default_times()
 
@@ -253,8 +255,20 @@ class TimeTrackerApp(tk.Tk):
 
         self.psp_combo = self._build_combobox(fields_frame, "PSP (optional):", self.psp_var)
         self.type_combo = self._build_combobox(fields_frame, "Leistungsart:", self.type_var)
-        self._build_time_entry(fields_frame, "Start:", self.start_var)
-        self._build_time_entry(fields_frame, "End:", self.end_var)
+        self.time_frame = ttk.Frame(fields_frame)
+        self.time_frame.pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Label(self.time_frame, text="Start:").grid(row=0, column=0, sticky=tk.W)
+        self.start_combo = self._build_time_entry(self.time_frame, self.start_var, row=1, column=0)
+
+        ttk.Label(self.time_frame, text="End:").grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
+        self.end_combo = self._build_time_entry(self.time_frame, self.end_var, row=1, column=1, pad_x=8)
+
+        ttk.Label(self.time_frame, text="Stunden:").grid(row=0, column=2, sticky=tk.W, padx=(8, 0))
+        self.hours_entry = ttk.Entry(self.time_frame, width=10, textvariable=self.hours_var, state="disabled")
+        self.hours_entry.grid(row=1, column=2, padx=(8, 0))
+
+        self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", command=self.toggle_time_mode)
+        self.mode_btn.grid(row=1, column=3, padx=(10, 0))
 
         desc_frame = ttk.Frame(main_frame)
         desc_frame.pack(fill=tk.X, pady=(0, 12))
@@ -329,11 +343,10 @@ class TimeTrackerApp(tk.Tk):
         combo.pack()
         return combo
 
-    def _build_time_entry(self, parent, label, variable):
-        frame = ttk.Frame(parent)
-        frame.pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Label(frame, text=label).pack(anchor=tk.W)
-        ttk.Combobox(frame, width=12, textvariable=variable, values=self._time_options()).pack()
+    def _build_time_entry(self, parent, variable, row=0, column=0, pad_x=0):
+        combo = ttk.Combobox(parent, width=12, textvariable=variable, values=self._time_options())
+        combo.grid(row=row, column=column, padx=(pad_x, 0))
+        return combo
 
     @staticmethod
     def _time_options():
@@ -349,6 +362,7 @@ class TimeTrackerApp(tk.Tk):
         now_str = datetime.now().strftime(TIME_FORMAT)
         self.start_var.set(now_str)
         self.end_var.set(now_str)
+        self.hours_var.set("")
 
     def open_calendar(self):
         current = self.current_date_value()
@@ -377,21 +391,33 @@ class TimeTrackerApp(tk.Tk):
         desc = self.desc_var.get().strip()
         start = self.start_var.get().strip()
         end = self.end_var.get().strip()
+        hours_value = self.hours_var.get().strip()
 
-        if not ltype or not start or not end:
-            raise ValueError("Leistungsart, Start, and End are required")
-
-        try:
-            calculate_hours(start, end)
-        except Exception as exc:
-            raise ValueError(str(exc)) from exc
+        if self.time_mode.get() == "range":
+            if not ltype or not start or not end:
+                raise ValueError("Leistungsart, Start, and End are required")
+            try:
+                hours = calculate_hours(start, end)
+            except Exception as exc:
+                raise ValueError(str(exc)) from exc
+        else:
+            if not ltype or not hours_value:
+                raise ValueError("Leistungsart and Stunden are required")
+            try:
+                hours = float(hours_value.replace(",", "."))
+            except ValueError as exc:
+                raise ValueError("Stunden müssen eine Zahl sein") from exc
+            if hours <= 0:
+                raise ValueError("Stunden müssen größer als 0 sein")
+            start = ""
+            end = ""
 
         try:
             selected_date = datetime.strptime(self.date_var.get(), DATE_FORMAT).date()
         except ValueError as exc:
             raise ValueError("Date must be in YYYY-MM-DD format") from exc
 
-        return selected_date.strftime(DATE_FORMAT), psp, ltype, desc, start, end
+        return selected_date.strftime(DATE_FORMAT), psp, ltype, desc, start, end, hours
 
     def add_entry(self):
         try:
@@ -433,8 +459,16 @@ class TimeTrackerApp(tk.Tk):
         self.reset_form()
 
     def _prepare_entry(self):
-        day_key, psp, ltype, desc, start, end = self.validate_fields()
-        entry = {"psp": psp, "type": ltype, "desc": desc, "start": start, "end": end}
+        day_key, psp, ltype, desc, start, end, hours = self.validate_fields()
+        entry = {
+            "psp": psp,
+            "type": ltype,
+            "desc": desc,
+            "start": start,
+            "end": end,
+            "hours": hours,
+            "mode": self.time_mode.get(),
+        }
         return day_key, entry
 
     def reset_form(self):
@@ -442,6 +476,8 @@ class TimeTrackerApp(tk.Tk):
         self.type_var.set("")
         self.desc_var.set("")
         self._set_default_times()
+        self.time_mode.set("range")
+        self._apply_time_mode()
         self.editing_index = None
         self._toggle_update_button(False)
         self.tree.selection_remove(self.tree.selection())
@@ -455,10 +491,17 @@ class TimeTrackerApp(tk.Tk):
         entries = self.data.get(day_key, [])
         total_hours = 0.0
         for idx, entry in enumerate(entries):
-            try:
-                hours = calculate_hours(entry["start"], entry["end"])
-            except Exception:
-                hours = 0
+            hours = entry.get("hours")
+            if hours is None:
+                try:
+                    hours = calculate_hours(entry.get("start", ""), entry.get("end", ""))
+                except Exception:
+                    hours = 0
+            else:
+                try:
+                    hours = float(hours)
+                except Exception:
+                    hours = 0
             total_hours += hours
             self.tree.insert("", "end", iid=str(idx), values=(
                 entry.get("psp", ""),
@@ -484,8 +527,17 @@ class TimeTrackerApp(tk.Tk):
         self.psp_var.set(entry.get("psp", ""))
         self.type_var.set(entry.get("type", ""))
         self.desc_var.set(entry.get("desc", ""))
-        self.start_var.set(entry.get("start", ""))
-        self.end_var.set(entry.get("end", ""))
+        mode = entry.get("mode", "range")
+        self.time_mode.set(mode)
+        if mode == "range":
+            self.start_var.set(entry.get("start", ""))
+            self.end_var.set(entry.get("end", ""))
+            self.hours_var.set("")
+        else:
+            self.hours_var.set(str(entry.get("hours", "")))
+            self.start_var.set("")
+            self.end_var.set("")
+        self._apply_time_mode()
         self.editing_index = idx
         self._toggle_update_button(True)
 
@@ -542,6 +594,29 @@ class TimeTrackerApp(tk.Tk):
         else:
             if self.update_btn.winfo_ismapped():
                 self.update_btn.pack_forget()
+
+    def toggle_time_mode(self):
+        new_mode = "duration" if self.time_mode.get() == "range" else "range"
+        self.time_mode.set(new_mode)
+        if new_mode == "duration":
+            self.hours_var.set(self.hours_var.get() or "1.0")
+        else:
+            if not self.start_var.get():
+                self._set_default_times()
+        self._apply_time_mode()
+
+    def _apply_time_mode(self):
+        if self.time_mode.get() == "duration":
+            self.start_combo.configure(state="disabled")
+            self.end_combo.configure(state="disabled")
+            self.hours_entry.configure(state="normal")
+            self.mode_btn.configure(text="Zu Start/Ende wechseln")
+        else:
+            self.start_combo.configure(state="normal")
+            self.end_combo.configure(state="normal")
+            self.hours_entry.configure(state="disabled")
+            self.hours_var.set("")
+            self.mode_btn.configure(text="Zu Stunden wechseln")
 
 
 def main():
