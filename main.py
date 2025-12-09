@@ -242,6 +242,9 @@ class TimeTrackerApp(tk.Tk):
         ttk.Button(date_frame, text="Pick Date", command=self.open_calendar).pack(side=tk.LEFT)
         ttk.Button(date_frame, text="Today", command=self.set_today).pack(side=tk.LEFT, padx=(6, 0))
 
+        self.day_display_var = tk.StringVar()
+        ttk.Label(date_frame, textvariable=self.day_display_var).pack(side=tk.RIGHT)
+
         # Input fields
         fields_frame = ttk.Frame(main_frame)
         fields_frame.pack(fill=tk.X, pady=(0, 12))
@@ -264,6 +267,7 @@ class TimeTrackerApp(tk.Tk):
         self.save_btn.pack(side=tk.LEFT)
 
         ttk.Button(btn_frame, text="Clear", command=self.reset_form).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(btn_frame, text="Delete", command=self.delete_entry).pack(side=tk.LEFT, padx=(6, 0))
 
         # Entries list
         tree_frame = ttk.Frame(main_frame)
@@ -417,6 +421,7 @@ class TimeTrackerApp(tk.Tk):
             self.tree.delete(item)
 
         day_key = self.date_var.get().strip()
+        self._update_day_display(day_key)
         entries = self.data.get(day_key, [])
         total_hours = 0.0
         for idx, entry in enumerate(entries):
@@ -452,6 +457,42 @@ class TimeTrackerApp(tk.Tk):
         self.end_var.set(entry.get("end", ""))
         self.editing_index = idx
         self.save_btn.config(text="Update Entry")
+
+    def delete_entry(self):
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showinfo("Delete entry", "Please select an entry to delete.")
+            return
+        idx = int(selection[0])
+        day_key = self.date_var.get().strip()
+        entries = self.data.get(day_key, [])
+        if idx >= len(entries):
+            return
+        entries.pop(idx)
+        save_data(self.data)
+        self.editing_index = None
+        self.save_btn.config(text="Add Entry")
+        self.refresh_entry_list()
+        self.reset_form()
+
+    def _update_day_display(self, day_key):
+        try:
+            day_date = datetime.strptime(day_key, DATE_FORMAT).date()
+        except ValueError:
+            self.day_display_var.set("")
+            return
+        weekday_names = [
+            "Montag",
+            "Dienstag",
+            "Mittwoch",
+            "Donnerstag",
+            "Freitag",
+            "Samstag",
+            "Sonntag",
+        ]
+        weekday = weekday_names[day_date.weekday()]
+        formatted = day_date.strftime("%d.%m")
+        self.day_display_var.set(f"{weekday} {formatted}")
 
 
 def main():
