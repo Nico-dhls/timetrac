@@ -4,6 +4,7 @@ from pathlib import Path
 import calendar
 import tkinter as tk
 from tkinter import ttk, messagebox
+import tkinter.font as tkfont
 
 DATA_FILE = Path("time_entries.json")
 DATE_FORMAT = "%Y-%m-%d"
@@ -196,6 +197,7 @@ class TimeTrackerApp(tk.Tk):
             fieldbackground=field_bg,
             background=field_bg,
             foreground=fg,
+            arrowcolor="#f3f3f3",
         )
         style.map(
             "TCombobox",
@@ -243,7 +245,7 @@ class TimeTrackerApp(tk.Tk):
         ttk.Button(date_frame, text="Today", command=self.set_today).pack(side=tk.LEFT, padx=(6, 0))
 
         self.day_display_var = tk.StringVar()
-        ttk.Label(date_frame, textvariable=self.day_display_var).pack(side=tk.RIGHT)
+        ttk.Label(date_frame, textvariable=self.day_display_var, font=("Arial", 12, "bold")).pack(side=tk.RIGHT)
 
         # Input fields
         fields_frame = ttk.Frame(main_frame)
@@ -438,6 +440,7 @@ class TimeTrackerApp(tk.Tk):
                 entry.get("end", ""),
                 f"{hours:.2f}",
             ))
+        self._auto_size_columns()
         self.total_var.set(f"Total: {total_hours:.2f} h")
 
     def on_select_entry(self, event):
@@ -493,6 +496,17 @@ class TimeTrackerApp(tk.Tk):
         weekday = weekday_names[day_date.weekday()]
         formatted = day_date.strftime("%d.%m")
         self.day_display_var.set(f"{weekday} {formatted}")
+
+    def _auto_size_columns(self):
+        font = tkfont.nametofont("TkDefaultFont")
+        padding = 30
+        for col in self.tree["columns"]:
+            heading_text = self.tree.heading(col).get("text", "")
+            max_width = font.measure(heading_text)
+            for item in self.tree.get_children(""):
+                cell_text = self.tree.set(item, col)
+                max_width = max(max_width, font.measure(cell_text))
+            self.tree.column(col, width=max(80, min(max_width + padding, 400)))
 
 
 def main():
