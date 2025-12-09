@@ -7,6 +7,7 @@ from tkinter import ttk, messagebox
 import tkinter.font as tkfont
 
 DATA_FILE = Path("time_entries.json")
+ICON_FILE = Path(__file__).resolve().parent / "icon.png"
 DATE_FORMAT = "%Y-%m-%d"
 TIME_FORMAT = "%H:%M"
 MAX_RECENTS = 10
@@ -53,13 +54,15 @@ def collect_recent_values(data, field):
 
 
 class CalendarPicker(tk.Toplevel):
-    def __init__(self, master, current_date, on_select):
+    def __init__(self, master, current_date, on_select, icon_image=None):
         super().__init__(master)
         self.title("Select Date")
         self.on_select = on_select
         self.selected = current_date
         self.configure(padx=10, pady=10, bg="#1e1e1e")
         self.resizable(False, False)
+        if icon_image is not None:
+            self.iconphoto(False, icon_image)
 
         self.month_var = tk.IntVar(value=current_date.month)
         self.year_var = tk.IntVar(value=current_date.year)
@@ -140,6 +143,8 @@ class TimeTrackerApp(tk.Tk):
         self.geometry("860x560")
         self.configure(bg="#1e1e1e")
         self.resizable(True, True)
+
+        self.icon_image = self._load_icon()
 
         self.data = load_data()
         self.editing_index = None
@@ -372,7 +377,7 @@ class TimeTrackerApp(tk.Tk):
 
     def open_calendar(self):
         current = self.current_date_value()
-        CalendarPicker(self, current, self.set_selected_date)
+        CalendarPicker(self, current, self.set_selected_date, self.icon_image)
 
     def set_selected_date(self, selected):
         self.date_var.set(selected.strftime(DATE_FORMAT))
@@ -624,6 +629,16 @@ class TimeTrackerApp(tk.Tk):
             self.hours_entry.configure(state="disabled")
             self.mode_btn.configure(text="Zu Stunden wechseln")
 
+    def _load_icon(self):
+        if ICON_FILE.exists():
+            try:
+                icon = tk.PhotoImage(file=str(ICON_FILE))
+                self.iconphoto(False, icon)
+                return icon
+            except Exception:
+                return None
+        return None
+
 
 def main():
     app = TimeTrackerApp()
@@ -632,3 +647,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
