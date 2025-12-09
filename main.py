@@ -57,7 +57,7 @@ class CalendarPicker(tk.Toplevel):
         self.title("Select Date")
         self.on_select = on_select
         self.selected = current_date
-        self.configure(padx=10, pady=10, bg="#121212")
+        self.configure(padx=10, pady=10, bg="#1e1e1e")
         self.resizable(False, False)
 
         self.month_var = tk.IntVar(value=current_date.month)
@@ -137,7 +137,7 @@ class TimeTrackerApp(tk.Tk):
         super().__init__()
         self.title("Time Tracker")
         self.geometry("860x560")
-        self.configure(bg="#121212")
+        self.configure(bg="#1e1e1e")
         self.resizable(True, True)
 
         self.data = load_data()
@@ -150,6 +150,8 @@ class TimeTrackerApp(tk.Tk):
         self.start_var = tk.StringVar()
         self.end_var = tk.StringVar()
 
+        self._set_default_times()
+
         self._setup_styles()
         self.build_ui()
         self.refresh_entry_list()
@@ -157,10 +159,12 @@ class TimeTrackerApp(tk.Tk):
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        base_bg = "#121212"
-        field_bg = "#1f1f1f"
-        accent = "#3f51b5"
-        fg = "#e0e0e0"
+        base_bg = "#1e1e1e"
+        panel_bg = "#252526"
+        field_bg = "#2d2d2d"
+        accent = "#569cd6"
+        accent_active = "#6cb8ff"
+        fg = "#d4d4d4"
         style.configure(
             "TFrame",
             background=base_bg,
@@ -172,11 +176,15 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "TButton",
-            background=field_bg,
+            background=panel_bg,
             foreground=fg,
             padding=6,
         )
-        style.map("TButton", background=[("active", accent)])
+        style.map(
+            "TButton",
+            background=[("active", accent)],
+            foreground=[("active", "#ffffff")],
+        )
         style.configure(
             "TEntry",
             fieldbackground=field_bg,
@@ -209,9 +217,14 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "Treeview.Heading",
-            background=field_bg,
+            background=panel_bg,
             foreground=fg,
             relief="flat",
+        )
+        style.map(
+            "Treeview.Heading",
+            background=[("active", accent_active)],
+            foreground=[("active", "#ffffff")],
         )
 
     def build_ui(self):
@@ -316,11 +329,16 @@ class TimeTrackerApp(tk.Tk):
     def _time_options():
         times = []
         current = datetime.strptime("00:00", TIME_FORMAT)
-        end_time = datetime.strptime("23:59", TIME_FORMAT)
+        end_time = datetime.strptime("23:00", TIME_FORMAT)
         while current <= end_time:
             times.append(current.strftime(TIME_FORMAT))
-            current += timedelta(minutes=15)
+            current += timedelta(hours=1)
         return times
+
+    def _set_default_times(self):
+        now_str = datetime.now().strftime(TIME_FORMAT)
+        self.start_var.set(now_str)
+        self.end_var.set(now_str)
 
     def open_calendar(self):
         current = self.current_date_value()
@@ -389,8 +407,7 @@ class TimeTrackerApp(tk.Tk):
         self.psp_var.set("")
         self.type_var.set("")
         self.desc_var.set("")
-        self.start_var.set("")
-        self.end_var.set("")
+        self._set_default_times()
         self.editing_index = None
         self.save_btn.config(text="Add Entry")
         self.tree.selection_remove(self.tree.selection())
