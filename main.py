@@ -265,8 +265,12 @@ class TimeTrackerApp(tk.Tk):
         btn_frame = ttk.Frame(main_frame)
         btn_frame.pack(fill=tk.X, pady=(0, 12))
 
-        self.save_btn = ttk.Button(btn_frame, text="Add Entry", command=self.save_entry)
-        self.save_btn.pack(side=tk.LEFT)
+        self.add_btn = ttk.Button(btn_frame, text="Add Entry", command=self.add_entry)
+        self.add_btn.pack(side=tk.LEFT)
+
+        self.update_btn = ttk.Button(btn_frame, text="Update Entry", command=self.update_entry)
+        self.update_btn.pack(side=tk.LEFT, padx=(6, 0))
+        self.update_btn.pack_forget()
 
         ttk.Button(btn_frame, text="Clear", command=self.reset_form).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(btn_frame, text="Delete", command=self.delete_entry).pack(side=tk.LEFT, padx=(6, 0))
@@ -389,25 +393,49 @@ class TimeTrackerApp(tk.Tk):
 
         return selected_date.strftime(DATE_FORMAT), psp, ltype, desc, start, end
 
-    def save_entry(self):
+    def add_entry(self):
         try:
-            day_key, psp, ltype, desc, start, end = self.validate_fields()
+            day_key, entry = self._prepare_entry()
         except ValueError as exc:
             messagebox.showerror("Invalid input", str(exc))
             return
 
         entries = ensure_date_bucket(self.data, day_key)
-        entry = {"psp": psp, "type": ltype, "desc": desc, "start": start, "end": end}
-
-        if self.editing_index is None:
-            entries.append(entry)
-        else:
-            entries[self.editing_index] = entry
+        entries.append(entry)
 
         save_data(self.data)
         self.update_combobox_values()
         self.refresh_entry_list()
         self.reset_form()
+
+    def update_entry(self):
+        if self.editing_index is None:
+            messagebox.showinfo("Update entry", "Bitte wähle zuerst einen Eintrag aus.")
+            return
+
+        try:
+            day_key, entry = self._prepare_entry()
+        except ValueError as exc:
+            messagebox.showerror("Invalid input", str(exc))
+            return
+
+        entries = ensure_date_bucket(self.data, day_key)
+        if self.editing_index >= len(entries):
+            messagebox.showinfo("Update entry", "Der ausgewählte Eintrag existiert nicht mehr.")
+            self.reset_form()
+            return
+
+        entries[self.editing_index] = entry
+
+        save_data(self.data)
+        self.update_combobox_values()
+        self.refresh_entry_list()
+        self.reset_form()
+
+    def _prepare_entry(self):
+        day_key, psp, ltype, desc, start, end = self.validate_fields()
+        entry = {"psp": psp, "type": ltype, "desc": desc, "start": start, "end": end}
+        return day_key, entry
 
     def reset_form(self):
         self.psp_var.set("")
@@ -415,7 +443,7 @@ class TimeTrackerApp(tk.Tk):
         self.desc_var.set("")
         self._set_default_times()
         self.editing_index = None
-        self.save_btn.config(text="Add Entry")
+        self._toggle_update_button(False)
         self.tree.selection_remove(self.tree.selection())
 
     def refresh_entry_list(self):
@@ -459,7 +487,7 @@ class TimeTrackerApp(tk.Tk):
         self.start_var.set(entry.get("start", ""))
         self.end_var.set(entry.get("end", ""))
         self.editing_index = idx
-        self.save_btn.config(text="Update Entry")
+        self._toggle_update_button(True)
 
     def delete_entry(self):
         selection = self.tree.selection()
@@ -474,7 +502,6 @@ class TimeTrackerApp(tk.Tk):
         entries.pop(idx)
         save_data(self.data)
         self.editing_index = None
-        self.save_btn.config(text="Add Entry")
         self.refresh_entry_list()
         self.reset_form()
 
@@ -507,6 +534,14 @@ class TimeTrackerApp(tk.Tk):
                 cell_text = self.tree.set(item, col)
                 max_width = max(max_width, font.measure(cell_text))
             self.tree.column(col, width=max(80, min(max_width + padding, 400)))
+
+    def _toggle_update_button(self, show):
+        if show:
+            if not self.update_btn.winfo_ismapped():
+                self.update_btn.pack(side=tk.LEFT, padx=(6, 0))
+        else:
+            if self.update_btn.winfo_ismapped():
+                self.update_btn.pack_forget()
 
 
 def main():
