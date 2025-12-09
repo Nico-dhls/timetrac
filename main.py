@@ -145,6 +145,7 @@ class TimeTrackerApp(tk.Tk):
         self.date_var = tk.StringVar(value=date.today().strftime(DATE_FORMAT))
         self.psp_var = tk.StringVar()
         self.type_var = tk.StringVar()
+        self.desc_var = tk.StringVar()
         self.start_var = tk.StringVar()
         self.end_var = tk.StringVar()
 
@@ -169,10 +170,15 @@ class TimeTrackerApp(tk.Tk):
         fields_frame = ttk.Frame(main_frame)
         fields_frame.pack(fill=tk.X, pady=(0, 12))
 
-        self.psp_combo = self._build_combobox(fields_frame, "PSP:", self.psp_var)
+        self.psp_combo = self._build_combobox(fields_frame, "PSP (optional):", self.psp_var)
         self.type_combo = self._build_combobox(fields_frame, "Leistungsart:", self.type_var)
         self._build_time_entry(fields_frame, "Start:", self.start_var)
         self._build_time_entry(fields_frame, "End:", self.end_var)
+
+        desc_frame = ttk.Frame(main_frame)
+        desc_frame.pack(fill=tk.X, pady=(0, 12))
+        ttk.Label(desc_frame, text="Kurzbeschreibung:").pack(anchor=tk.W)
+        ttk.Entry(desc_frame, textvariable=self.desc_var).pack(fill=tk.X)
 
         # Buttons
         btn_frame = ttk.Frame(main_frame)
@@ -184,17 +190,28 @@ class TimeTrackerApp(tk.Tk):
         ttk.Button(btn_frame, text="Clear", command=self.reset_form).pack(side=tk.LEFT, padx=(6, 0))
 
         # Entries list
-        self.tree = ttk.Treeview(main_frame, columns=("psp", "type", "start", "end", "hours"), show="headings", height=12)
+        self.tree = ttk.Treeview(
+            main_frame,
+            columns=("psp", "type", "desc", "start", "end", "hours"),
+            show="headings",
+            height=12,
+        )
         headings = {
             "psp": "PSP",
             "type": "Leistungsart",
+            "desc": "Beschreibung",
             "start": "Start",
             "end": "End",
             "hours": "Hours",
         }
         for col, title in headings.items():
             self.tree.heading(col, text=title)
-            self.tree.column(col, width=120 if col != "hours" else 80, anchor=tk.CENTER)
+            width = 120
+            if col == "hours":
+                width = 80
+            elif col == "desc":
+                width = 180
+            self.tree.column(col, width=width, anchor=tk.CENTER)
         self.tree.pack(fill=tk.BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
 
@@ -216,7 +233,17 @@ class TimeTrackerApp(tk.Tk):
         frame = ttk.Frame(parent)
         frame.pack(side=tk.LEFT, padx=(0, 8))
         ttk.Label(frame, text=label).pack(anchor=tk.W)
-        ttk.Entry(frame, width=12, textvariable=variable).pack()
+        ttk.Combobox(frame, width=12, textvariable=variable, values=self._time_options()).pack()
+
+    @staticmethod
+    def _time_options():
+        times = []
+        current = datetime.strptime("00:00", TIME_FORMAT)
+        end_time = datetime.strptime("23:59", TIME_FORMAT)
+        while current <= end_time:
+            times.append(current.strftime(TIME_FORMAT))
+            current += timedelta(minutes=15)
+        return times
 
     def open_calendar(self):
         current = self.current_date_value()
@@ -239,11 +266,12 @@ class TimeTrackerApp(tk.Tk):
     def validate_fields(self):
         psp = self.psp_var.get().strip()
         ltype = self.type_var.get().strip()
+        desc = self.desc_var.get().strip()
         start = self.start_var.get().strip()
         end = self.end_var.get().strip()
 
-        if not psp or not ltype or not start or not end:
-            raise ValueError("All fields are required")
+        if not ltype or not start or not end:
+            raise ValueError("Leistungsart, Start, and End are required")
 
         try:
             calculate_hours(start, end)
@@ -255,17 +283,17 @@ class TimeTrackerApp(tk.Tk):
         except ValueError as exc:
             raise ValueError("Date must be in YYYY-MM-DD format") from exc
 
-        return selected_date.strftime(DATE_FORMAT), psp, ltype, start, end
+        return selected_date.strftime(DATE_FORMAT), psp, ltype, desc, start, end
 
     def save_entry(self):
         try:
-            day_key, psp, ltype, start, end = self.validate_fields()
+            day_key, psp, ltype, desc, start, end = self.validate_fields()
         except ValueError as exc:
             messagebox.showerror("Invalid input", str(exc))
             return
 
         entries = ensure_date_bucket(self.data, day_key)
-        entry = {"psp": psp, "type": ltype, "start": start, "end": end}
+        entry = {"psp": psp, "type": ltype, "desc": desc, "start": start, "end": end}
 
         if self.editing_index is None:
             entries.append(entry)
@@ -280,6 +308,7 @@ class TimeTrackerApp(tk.Tk):
     def reset_form(self):
         self.psp_var.set("")
         self.type_var.set("")
+        self.desc_var.set("")
         self.start_var.set("")
         self.end_var.set("")
         self.editing_index = None
@@ -302,6 +331,7 @@ class TimeTrackerApp(tk.Tk):
             self.tree.insert("", "end", iid=str(idx), values=(
                 entry.get("psp", ""),
                 entry.get("type", ""),
+                entry.get("desc", ""),
                 entry.get("start", ""),
                 entry.get("end", ""),
                 f"{hours:.2f}",
@@ -320,6 +350,7 @@ class TimeTrackerApp(tk.Tk):
         entry = entries[idx]
         self.psp_var.set(entry.get("psp", ""))
         self.type_var.set(entry.get("type", ""))
+        self.desc_var.set(entry.get("desc", ""))
         self.start_var.set(entry.get("start", ""))
         self.end_var.set(entry.get("end", ""))
         self.editing_index = idx
