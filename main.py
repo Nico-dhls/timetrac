@@ -7,7 +7,7 @@ from tkinter import ttk, messagebox
 import tkinter.font as tkfont
 
 DATA_FILE = Path("time_entries.json")
-ICON_FILE = Path(__file__).resolve().parent / "icon.png"
+ICON_FILE = Path(__file__).resolve().parent / "timetable_icon.ico"
 DATE_FORMAT = "%Y-%m-%d"
 TIME_FORMAT = "%H:%M"
 MAX_RECENTS = 10
@@ -630,14 +630,10 @@ class TimeTrackerApp(tk.Tk):
             self.mode_btn.configure(text="Zu Stunden wechseln")
 
     def _load_icon(self):
-        if ICON_FILE.exists():
-            try:
-                icon = tk.PhotoImage(file=str(ICON_FILE))
-                self.iconphoto(False, icon)
-                return icon
-            except Exception:
-                return None
-        return None
+        try:
+            self.iconbitmap(str(ICON_FILE))
+        except Exception:
+            return None
 
 
 def main():
