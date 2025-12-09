@@ -57,7 +57,7 @@ class CalendarPicker(tk.Toplevel):
         self.title("Select Date")
         self.on_select = on_select
         self.selected = current_date
-        self.configure(padx=10, pady=10)
+        self.configure(padx=10, pady=10, bg="#121212")
         self.resizable(False, False)
 
         self.month_var = tk.IntVar(value=current_date.month)
@@ -136,8 +136,9 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Time Tracker")
-        self.geometry("720x520")
-        self.resizable(False, False)
+        self.geometry("860x560")
+        self.configure(bg="#121212")
+        self.resizable(True, True)
 
         self.data = load_data()
         self.editing_index = None
@@ -149,8 +150,69 @@ class TimeTrackerApp(tk.Tk):
         self.start_var = tk.StringVar()
         self.end_var = tk.StringVar()
 
+        self._setup_styles()
         self.build_ui()
         self.refresh_entry_list()
+
+    def _setup_styles(self):
+        style = ttk.Style(self)
+        style.theme_use("clam")
+        base_bg = "#121212"
+        field_bg = "#1f1f1f"
+        accent = "#3f51b5"
+        fg = "#e0e0e0"
+        style.configure(
+            "TFrame",
+            background=base_bg,
+        )
+        style.configure(
+            "TLabel",
+            background=base_bg,
+            foreground=fg,
+        )
+        style.configure(
+            "TButton",
+            background=field_bg,
+            foreground=fg,
+            padding=6,
+        )
+        style.map("TButton", background=[("active", accent)])
+        style.configure(
+            "TEntry",
+            fieldbackground=field_bg,
+            foreground=fg,
+            insertcolor=fg,
+        )
+        style.configure(
+            "TCombobox",
+            fieldbackground=field_bg,
+            background=field_bg,
+            foreground=fg,
+        )
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", field_bg)],
+            foreground=[("readonly", fg)],
+        )
+        style.configure(
+            "Treeview",
+            background=field_bg,
+            fieldbackground=field_bg,
+            foreground=fg,
+            rowheight=26,
+            borderwidth=0,
+        )
+        style.map(
+            "Treeview",
+            background=[("selected", accent)],
+            foreground=[("selected", "#ffffff")],
+        )
+        style.configure(
+            "Treeview.Heading",
+            background=field_bg,
+            foreground=fg,
+            relief="flat",
+        )
 
     def build_ui(self):
         main_frame = ttk.Frame(self, padding=12)
@@ -165,6 +227,7 @@ class TimeTrackerApp(tk.Tk):
         date_entry.pack(side=tk.LEFT, padx=(6, 6))
 
         ttk.Button(date_frame, text="Pick Date", command=self.open_calendar).pack(side=tk.LEFT)
+        ttk.Button(date_frame, text="Today", command=self.set_today).pack(side=tk.LEFT, padx=(6, 0))
 
         # Input fields
         fields_frame = ttk.Frame(main_frame)
@@ -190,9 +253,13 @@ class TimeTrackerApp(tk.Tk):
         ttk.Button(btn_frame, text="Clear", command=self.reset_form).pack(side=tk.LEFT, padx=(6, 0))
 
         # Entries list
+        tree_frame = ttk.Frame(main_frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True)
+
+        columns = ("psp", "type", "desc", "start", "end", "hours")
         self.tree = ttk.Treeview(
-            main_frame,
-            columns=("psp", "type", "desc", "start", "end", "hours"),
+            tree_frame,
+            columns=columns,
             show="headings",
             height=12,
         )
@@ -206,13 +273,23 @@ class TimeTrackerApp(tk.Tk):
         }
         for col, title in headings.items():
             self.tree.heading(col, text=title)
-            width = 120
+            width = 140
             if col == "hours":
-                width = 80
+                width = 110
             elif col == "desc":
-                width = 180
-            self.tree.column(col, width=width, anchor=tk.CENTER)
-        self.tree.pack(fill=tk.BOTH, expand=True)
+                width = 200
+            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=80)
+
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(0, weight=1)
+
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
 
         # Total hours
@@ -252,6 +329,9 @@ class TimeTrackerApp(tk.Tk):
     def set_selected_date(self, selected):
         self.date_var.set(selected.strftime(DATE_FORMAT))
         self.refresh_entry_list()
+
+    def set_today(self):
+        self.set_selected_date(date.today())
 
     def current_date_value(self):
         try:
