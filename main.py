@@ -281,7 +281,7 @@ class TimeTrackerApp(tk.Tk):
         ttk.Label(desc_frame, text="Kurzbeschreibung:").pack(anchor=tk.W)
         ttk.Entry(desc_frame, textvariable=self.desc_var).pack(fill=tk.X)
 
-        # Buttons
+        # Buttons and total hours
         btn_frame = ttk.Frame(main_frame)
         btn_frame.pack(fill=tk.X, pady=(0, 12))
 
@@ -294,6 +294,9 @@ class TimeTrackerApp(tk.Tk):
 
         ttk.Button(btn_frame, text="Clear", command=self.reset_form).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(btn_frame, text="Delete", command=self.delete_entry).pack(side=tk.LEFT, padx=(6, 0))
+
+        self.total_var = tk.StringVar(value="Total: 0.00 h")
+        ttk.Label(btn_frame, textvariable=self.total_var, font=("Arial", 12, "bold")).pack(side=tk.RIGHT)
 
         # Entries list
         tree_frame = ttk.Frame(main_frame)
@@ -334,10 +337,6 @@ class TimeTrackerApp(tk.Tk):
         tree_frame.rowconfigure(0, weight=1)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
-
-        # Total hours
-        self.total_var = tk.StringVar(value="Total: 0.00 h")
-        ttk.Label(main_frame, textvariable=self.total_var, font=("Arial", 12, "bold")).pack(anchor=tk.E, pady=(8, 0))
 
         self.update_combobox_values()
         self._apply_time_mode()
