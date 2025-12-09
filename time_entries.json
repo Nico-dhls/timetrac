@@ -1,0 +1,27 @@
+{
+  "2025-12-09": [
+    {
+      "psp": "2134",
+      "type": "EDUL1",
+      "desc": "Penis",
+      "start": "13:00",
+      "end": "14:00"
+    },
+    {
+      "psp": "1234",
+      "type": "Fisch",
+      "desc": "",
+      "start": "19:00",
+      "end": "22:15"
+    },
+    {
+      "psp": "213",
+      "type": "fasx",
+      "desc": "gcxbsdga",
+      "start": "",
+      "end": "",
+      "hours": 1.0,
+      "mode": "duration"
+    }
+  ]
+}
