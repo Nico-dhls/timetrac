@@ -879,9 +879,37 @@ class TimeTrackerApp(tk.Tk):
             return "break"
 
         day_key = self.date_var.get().strip()
-        psp, ltype, desc, start, end, hours = values
-        parts = [day_key, psp, ltype, desc, start, end, hours]
-        text = "\t".join(part for part in parts if part)
+        try:
+            day_date = datetime.strptime(day_key, DATE_FORMAT).date()
+        except ValueError:
+            return "break"
+
+        psp, ltype, desc, _, _, hours = values
+        hours_value = str(hours).replace(",", ".")
+        try:
+            hours_float = float(hours_value)
+        except ValueError:
+            return "break"
+
+        hours_text = f"{hours_float:.2f}".replace(".", ",")
+        weekday_index = day_date.weekday()
+        day_hours = ["", "", "", "", ""]  # Mo-Fr
+        if 0 <= weekday_index < len(day_hours):
+            day_hours[weekday_index] = hours_text
+
+        columns = [
+            "",  # Z
+            "",  # S.
+            ltype,
+            psp,
+            desc,
+            "",  # zweite Bezeichnung (optional)
+            "H",  # ME
+            hours_text,  # Summe
+            *day_hours,
+        ]
+
+        text = "\t".join(columns)
 
         self.clipboard_clear()
         self.clipboard_append(text)
