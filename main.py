@@ -874,20 +874,43 @@ class TimeTrackerApp(tk.Tk):
             return "break"
 
         item_id = selection[0]
-        group_id = item_id
-        if not self.tree.tag_has("group", item_id):
-            parent_id = self.tree.parent(item_id)
-            if parent_id and self.tree.tag_has("group", parent_id):
-                group_id = parent_id
-
-        values = self.tree.item(group_id, "values")
+        values = self.tree.item(item_id, "values")
         if not values:
             return "break"
 
-        psp, ltype, desc, *_rest, hours = values
         day_key = self.date_var.get().strip()
-        parts = [day_key, psp, ltype, desc, hours]
-        text = "\t".join(part for part in parts if part)
+        try:
+            day_date = datetime.strptime(day_key, DATE_FORMAT).date()
+        except ValueError:
+            return "break"
+
+        psp, ltype, desc, _, _, hours = values
+        hours_value = str(hours).replace(",", ".")
+        try:
+            hours_float = float(hours_value)
+        except ValueError:
+            return "break"
+
+        hours_text = f"{hours_float:.2f}".replace(".", ",")
+        weekday_index = day_date.weekday()
+        day_hours = ["", "", "", "", ""]  # Mo-Fr
+        if 0 <= weekday_index < len(day_hours):
+            day_hours[weekday_index] = hours_text
+
+        columns = [
+            ltype,
+            psp,
+            "",  # H (nicht benötigt, aber vorhanden)
+            "",  # Bezeichnung (wird separat gesetzt)
+            "",  # zweite Bezeichnung (optional)
+            "",  # ME (nicht benötigt)
+            "",  # Summe (wird automatisch berechnet)
+            *day_hours,
+        ]
+
+        # Add a trailing newline so SAP treats the clipboard content as a full row
+        # and advances through all columns instead of stopping after the first field.
+        text = "\t".join(columns) + "\r\n"
 
         self.clipboard_clear()
         self.clipboard_append(text)
