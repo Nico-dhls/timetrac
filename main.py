@@ -284,7 +284,8 @@ class TimeTrackerApp(tk.Tk):
         desc_frame = ttk.Frame(main_frame)
         desc_frame.pack(fill=tk.X, pady=(0, 12))
         ttk.Label(desc_frame, text="Kurzbeschreibung:").pack(anchor=tk.W)
-        ttk.Entry(desc_frame, textvariable=self.desc_var).pack(fill=tk.X)
+        self.desc_combo = ttk.Combobox(desc_frame, textvariable=self.desc_var)
+        self.desc_combo.pack(fill=tk.X)
 
         # Buttons and total hours
         btn_frame = ttk.Frame(main_frame)
@@ -311,9 +312,12 @@ class TimeTrackerApp(tk.Tk):
         self.tree = ttk.Treeview(
             tree_frame,
             columns=columns,
-            show="headings",
+            show="tree headings",
             height=12,
         )
+        self.tree.heading("#0", text="")
+        self.tree.column("#0", width=26, anchor=tk.W, minwidth=26, stretch=False)
+
         headings = {
             "psp": "PSP",
             "type": "Leistungsart",
@@ -344,6 +348,7 @@ class TimeTrackerApp(tk.Tk):
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
 
         self.update_combobox_values()
+        self.desc_combo["values"] = []
         self._apply_time_mode()
 
     def _build_combobox(self, parent, label, variable):
@@ -395,6 +400,17 @@ class TimeTrackerApp(tk.Tk):
     def update_combobox_values(self):
         self.psp_combo["values"] = collect_recent_values(self.data, "psp")
         self.type_combo["values"] = collect_recent_values(self.data, "type")
+        self._update_desc_values()
+
+    def _update_desc_values(self):
+        day_key = self.date_var.get().strip()
+        entries = self.data.get(day_key, [])
+        desc_values = []
+        for entry in entries:
+            desc = entry.get("desc", "")
+            if desc and desc not in desc_values:
+                desc_values.append(desc)
+        self.desc_combo["values"] = desc_values
 
     def validate_fields(self):
         psp = self.psp_var.get().strip()
@@ -500,28 +516,42 @@ class TimeTrackerApp(tk.Tk):
         day_key = self.date_var.get().strip()
         self._update_day_display(day_key)
         entries = self.data.get(day_key, [])
+        self._update_desc_values()
+        self.item_index_map = {}
         total_hours = 0.0
-        for idx, entry in enumerate(entries):
-            hours = entry.get("hours")
-            if hours is None:
-                try:
-                    hours = calculate_hours(entry.get("start", ""), entry.get("end", ""))
-                except Exception:
-                    hours = 0
-            else:
-                try:
-                    hours = float(hours)
-                except Exception:
-                    hours = 0
-            total_hours += hours
-            self.tree.insert("", "end", iid=str(idx), values=(
-                entry.get("psp", ""),
-                entry.get("type", ""),
-                entry.get("desc", ""),
-                entry.get("start", ""),
-                entry.get("end", ""),
-                f"{hours:.2f}",
-            ))
+        grouped_entries = self._group_entries(entries)
+
+        for group_idx, (group_key, items) in enumerate(grouped_entries):
+            group_hours = sum(item[2] for item in items)
+            psp, ltype, desc = group_key
+            parent_id = f"group-{group_idx}"
+            self.tree.insert(
+                "",
+                "end",
+                iid=parent_id,
+                text="",
+                values=(psp, ltype, desc, "—", "—", f"{group_hours:.2f}"),
+                open=False,
+                tags=("group",),
+            )
+            total_hours += group_hours
+            for child_idx, (entry_idx, entry, hours) in enumerate(items):
+                item_id = f"{parent_id}-{child_idx}"
+                self.item_index_map[item_id] = entry_idx
+                self.tree.insert(
+                    parent_id,
+                    "end",
+                    iid=item_id,
+                    text="",
+                    values=(
+                        entry.get("psp", ""),
+                        entry.get("type", ""),
+                        entry.get("desc", ""),
+                        entry.get("start", ""),
+                        entry.get("end", ""),
+                        f"{hours:.2f}",
+                    ),
+                )
         self._auto_size_columns()
         self.total_var.set(f"Total: {total_hours:.2f} h")
 
@@ -529,7 +559,12 @@ class TimeTrackerApp(tk.Tk):
         selection = self.tree.selection()
         if not selection:
             return
-        idx = int(selection[0])
+        item_id = selection[0]
+        if item_id not in self.item_index_map:
+            self.editing_index = None
+            self._toggle_update_button(False)
+            return
+        idx = self.item_index_map[item_id]
         day_key = self.date_var.get().strip()
         entries = self.data.get(day_key, [])
         if idx >= len(entries):
@@ -557,7 +592,11 @@ class TimeTrackerApp(tk.Tk):
         if not selection:
             messagebox.showinfo("Delete entry", "Please select an entry to delete.")
             return
-        idx = int(selection[0])
+        item_id = selection[0]
+        if item_id not in self.item_index_map:
+            messagebox.showinfo("Delete entry", "Bitte wähle einen konkreten Untereintrag aus.")
+            return
+        idx = self.item_index_map[item_id]
         day_key = self.date_var.get().strip()
         entries = self.data.get(day_key, [])
         if idx >= len(entries):
@@ -593,10 +632,37 @@ class TimeTrackerApp(tk.Tk):
         for col in self.tree["columns"]:
             heading_text = self.tree.heading(col).get("text", "")
             max_width = font.measure(heading_text)
-            for item in self.tree.get_children(""):
+            stack = list(self.tree.get_children(""))
+            while stack:
+                item = stack.pop()
                 cell_text = self.tree.set(item, col)
                 max_width = max(max_width, font.measure(cell_text))
+                stack.extend(self.tree.get_children(item))
             self.tree.column(col, width=max(80, min(max_width + padding, 400)))
+
+    def _group_entries(self, entries):
+        groups = {}
+        for idx, entry in enumerate(entries):
+            psp = entry.get("psp", "")
+            ltype = entry.get("type", "")
+            desc = entry.get("desc", "")
+            key = (psp, ltype, desc)
+            hours_raw = entry.get("hours")
+            if hours_raw is None:
+                try:
+                    hours = calculate_hours(entry.get("start", ""), entry.get("end", ""))
+                except Exception:
+                    hours = 0
+            else:
+                try:
+                    hours = float(hours_raw)
+                except Exception:
+                    hours = 0
+            if key not in groups:
+                groups[key] = []
+            groups[key].append((idx, entry, hours))
+
+        return list(groups.items())
 
     def _toggle_update_button(self, show):
         if show:
