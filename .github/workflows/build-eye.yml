@@ -1,0 +1,41 @@
+name: Build EXE on main
+
+on:
+  push:
+    branches:
+      - main   # läuft bei jedem Push auf main (also auch bei Merge)
+
+jobs:
+  build:
+    runs-on: windows-latest   # wichtig, damit ein Windows-EXE gebaut wird
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          # falls du requirements.txt hast:
+          # pip install -r requirements.txt
+
+      - name: Build EXE with PyInstaller
+        run: >
+          pyinstaller
+          --onefile
+          --noconsole
+          --icon="timetable_icon.ico"
+          --add-data="timetable_icon.ico;."
+          main.py
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: timetable-exe
+          path: dist/*.exe
