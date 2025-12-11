@@ -566,6 +566,8 @@ class TimeTrackerApp(tk.Tk):
         tree_frame.rowconfigure(0, weight=1)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
+        self.tree.bind("<Control-c>", self.copy_selection)
+        self.tree.bind("<Control-C>", self.copy_selection)
 
         self.update_combobox_values()
         self.desc_combo["values"] = []
@@ -865,6 +867,31 @@ class TimeTrackerApp(tk.Tk):
         self._apply_time_mode()
         self.editing_index = idx
         self._toggle_update_button(True)
+
+    def copy_selection(self, event=None):
+        selection = self.tree.selection()
+        if not selection:
+            return "break"
+
+        item_id = selection[0]
+        group_id = item_id
+        if not self.tree.tag_has("group", item_id):
+            parent_id = self.tree.parent(item_id)
+            if parent_id and self.tree.tag_has("group", parent_id):
+                group_id = parent_id
+
+        values = self.tree.item(group_id, "values")
+        if not values:
+            return "break"
+
+        psp, ltype, desc, *_rest, hours = values
+        day_key = self.date_var.get().strip()
+        parts = [day_key, psp, ltype, desc, hours]
+        text = "\t".join(part for part in parts if part)
+
+        self.clipboard_clear()
+        self.clipboard_append(text)
+        return "break"
 
     def delete_entry(self):
         selection = self.tree.selection()
