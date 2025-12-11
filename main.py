@@ -170,9 +170,14 @@ class TimeTrackerApp(tk.Tk):
         base_bg = "#1e1e1e"
         panel_bg = "#252526"
         field_bg = "#2d2d2d"
+        focus_bg = "#1f3c53"
         accent = "#569cd6"
         accent_active = "#6cb8ff"
         fg = "#d4d4d4"
+        self._colors = {
+            "field_bg": field_bg,
+            "focus_bg": focus_bg,
+        }
         style.configure(
             "TFrame",
             background=base_bg,
@@ -199,6 +204,12 @@ class TimeTrackerApp(tk.Tk):
             foreground=fg,
             insertcolor=fg,
         )
+        style.map(
+            "TEntry",
+            fieldbackground=[("focus", focus_bg)],
+            bordercolor=[("focus", accent)],
+            foreground=[("focus", fg)],
+        )
         style.configure(
             "TCombobox",
             fieldbackground=field_bg,
@@ -208,7 +219,8 @@ class TimeTrackerApp(tk.Tk):
         )
         style.map(
             "TCombobox",
-            fieldbackground=[("readonly", field_bg)],
+            fieldbackground=[("readonly", field_bg), ("focus", focus_bg)],
+            background=[("focus", focus_bg)],
             foreground=[("readonly", fg)],
         )
         style.configure(
@@ -360,9 +372,29 @@ class TimeTrackerApp(tk.Tk):
         return combo
 
     def _build_time_entry(self, parent, variable, row=0, column=0, pad_x=0):
-        combo = ttk.Combobox(parent, width=12, textvariable=variable, values=self._time_options())
+        combo = ttk.Combobox(
+            parent,
+            width=12,
+            textvariable=variable,
+            values=self._time_options(),
+            postcommand=lambda c=combo: self._scroll_time_to_current(c),
+        )
         combo.grid(row=row, column=column, padx=(pad_x, 0))
         return combo
+
+    def _scroll_time_to_current(self, combo):
+        values = combo["values"]
+        if not values:
+            return
+        target_value = combo.get().strip()
+        now_value = datetime.now().strftime(TIME_FORMAT)
+        if target_value not in values:
+            target_value = now_value if now_value in values else ""
+        if target_value:
+            try:
+                combo.current(values.index(target_value))
+            except ValueError:
+                pass
 
     @staticmethod
     def _time_options():
