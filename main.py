@@ -44,7 +44,12 @@ def calculate_hours(start_value, end_value):
 def collect_recent_values(data, field):
     values = []
     for day in sorted(data.keys(), reverse=True):
-        for entry in reversed(data[day]):
+        entries = data[day]
+        if not isinstance(entries, list):
+            continue
+        for entry in reversed(entries):
+            if not isinstance(entry, dict):
+                continue
             value = entry.get(field, "")
             if value and value not in values:
                 values.append(value)
