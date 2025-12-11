@@ -377,8 +377,8 @@ class TimeTrackerApp(tk.Tk):
             width=12,
             textvariable=variable,
             values=self._time_options(),
-            postcommand=lambda c=combo: self._scroll_time_to_current(c),
         )
+        combo.configure(postcommand=lambda c=combo: self._scroll_time_to_current(c))
         combo.grid(row=row, column=column, padx=(pad_x, 0))
         return combo
 
