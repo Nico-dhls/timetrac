@@ -15,18 +15,26 @@ MAX_RECENTS = 10
 
 def load_data():
     if DATA_FILE.exists():
-        return json.loads(DATA_FILE.read_text())
-    return {}
+        try:
+            raw = json.loads(DATA_FILE.read_text())
+        except json.JSONDecodeError:
+            return {"entries": {}, "presets": []}
+        if "entries" in raw or "presets" in raw:
+            raw.setdefault("entries", {})
+            raw.setdefault("presets", [])
+            return raw
+        return {"entries": raw, "presets": []}
+    return {"entries": {}, "presets": []}
 
 
 def save_data(data):
     DATA_FILE.write_text(json.dumps(data, indent=2))
 
 
-def ensure_date_bucket(data, day_key):
-    if day_key not in data:
-        data[day_key] = []
-    return data[day_key]
+def ensure_date_bucket(entries, day_key):
+    if day_key not in entries:
+        entries[day_key] = []
+    return entries[day_key]
 
 
 def parse_time(value):
@@ -41,10 +49,10 @@ def calculate_hours(start_value, end_value):
     return (end_time - start_time).total_seconds() / 3600
 
 
-def collect_recent_values(data, field):
+def collect_recent_values(entries, field):
     values = []
-    for day in sorted(data.keys(), reverse=True):
-        for entry in reversed(data[day]):
+    for day in sorted(entries.keys(), reverse=True):
+        for entry in reversed(entries[day]):
             value = entry.get(field, "")
             if value and value not in values:
                 values.append(value)
@@ -63,6 +71,37 @@ class CalendarPicker(tk.Toplevel):
         self.resizable(False, False)
         if icon_image is not None:
             self.iconphoto(False, icon_image)
+
+        self._style = ttk.Style(self)
+        self._style.configure(
+            "CalendarDay.TButton",
+            padding=4,
+        )
+        self._style.configure(
+            "CalendarHeader.TLabel",
+            background="#1e1e1e",
+            foreground="#d4d4d4",
+        )
+        self._style.configure(
+            "SelectedWeek.TButton",
+            background="#2a3f55",
+            foreground="#d4d4d4",
+        )
+        self._style.configure(
+            "SelectedWeek.TLabel",
+            background="#2a3f55",
+            foreground="#d4d4d4",
+        )
+        self._style.configure(
+            "SelectedDay.TButton",
+            background="#569cd6",
+            foreground="#ffffff",
+        )
+        self._style.map(
+            "SelectedDay.TButton",
+            background=[("active", "#6cb8ff")],
+            foreground=[("active", "#ffffff")],
+        )
 
         self.month_var = tk.IntVar(value=current_date.month)
         self.year_var = tk.IntVar(value=current_date.year)
@@ -113,26 +152,166 @@ class CalendarPicker(tk.Toplevel):
         month_name = calendar.month_name[month]
         self.month_label.config(text=f"{month_name} {year}")
 
+        selected_week_row = None
+        if self.selected and self.selected.month == month and self.selected.year == year:
+            for row_idx, week in enumerate(calendar.monthcalendar(year, month), start=1):
+                if self.selected.day in week:
+                    selected_week_row = row_idx
+                    break
+
         weekdays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
         for col, name in enumerate(weekdays):
-            ttk.Label(self.days_frame, text=name, width=3, anchor="center").grid(row=0, column=col)
+            ttk.Label(
+                self.days_frame,
+                text=name,
+                width=3,
+                anchor="center",
+                style="CalendarHeader.TLabel",
+            ).grid(row=0, column=col)
 
         for row, week in enumerate(calendar.monthcalendar(year, month), start=1):
             for col, day in enumerate(week):
                 if day == 0:
-                    ttk.Label(self.days_frame, text="", width=3).grid(row=row, column=col)
+                    label_style = "SelectedWeek.TLabel" if selected_week_row == row else "CalendarHeader.TLabel"
+                    ttk.Label(self.days_frame, text="", width=3, style=label_style).grid(row=row, column=col)
                     continue
+                style = "CalendarDay.TButton"
+                day_date = date(year, month, day)
+                if self.selected == day_date:
+                    style = "SelectedDay.TButton"
+                elif selected_week_row == row:
+                    style = "SelectedWeek.TButton"
                 btn = ttk.Button(
                     self.days_frame,
                     text=str(day),
                     width=3,
+                    style=style,
                     command=lambda d=day: self.select_day(d),
                 )
                 btn.grid(row=row, column=col, padx=1, pady=1)
 
     def select_day(self, day):
         selected_date = date(self.year_var.get(), self.month_var.get(), day)
+        self.selected = selected_date
         self.on_select(selected_date)
+        self.destroy()
+
+
+class PresetManager(tk.Toplevel):
+    def __init__(self, master, presets, on_save, icon_image=None):
+        super().__init__(master)
+        self.title("Manage Presets")
+        self.configure(bg="#1e1e1e", padx=10, pady=10)
+        self.resizable(False, False)
+        self.transient(master)
+        if icon_image is not None:
+            self.iconphoto(False, icon_image)
+        self.protocol("WM_DELETE_WINDOW", self.save_and_close)
+
+        self.presets = [dict(preset) for preset in presets]
+        self.on_save = on_save
+
+        ttk.Label(self, text="Presets setzen PSP und Leistungsart automatisch.").pack(anchor=tk.W, pady=(0, 8))
+
+        list_frame = ttk.Frame(self)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+
+        columns = ("name", "psp", "type")
+        self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=8)
+        self.tree.heading("name", text="Name")
+        self.tree.heading("psp", text="PSP")
+        self.tree.heading("type", text="Leistungsart")
+        self.tree.column("name", width=160)
+        self.tree.column("psp", width=120)
+        self.tree.column("type", width=160)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=vsb.set)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        form = ttk.Frame(self)
+        form.pack(fill=tk.X, pady=(10, 4))
+
+        self.name_var = tk.StringVar()
+        self.psp_var = tk.StringVar()
+        self.type_var = tk.StringVar()
+
+        ttk.Label(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Entry(form, textvariable=self.name_var, width=18).grid(row=1, column=0, sticky=tk.W, padx=(0, 8))
+
+        ttk.Label(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
+        ttk.Entry(form, textvariable=self.psp_var, width=18).grid(row=1, column=1, sticky=tk.W, padx=(0, 8))
+
+        ttk.Label(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
+        ttk.Entry(form, textvariable=self.type_var, width=18).grid(row=1, column=2, sticky=tk.W)
+
+        btn_frame = ttk.Frame(self)
+        btn_frame.pack(fill=tk.X, pady=(8, 0))
+
+        ttk.Button(btn_frame, text="Add/Update", command=self.add_or_update).pack(side=tk.LEFT)
+        ttk.Button(btn_frame, text="Remove", command=self.remove_selected).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(btn_frame, text="Close", command=self.save_and_close).pack(side=tk.RIGHT)
+
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+        self.refresh_list()
+
+    def refresh_list(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        for idx, preset in enumerate(self.presets):
+            self.tree.insert("", "end", iid=str(idx), values=(preset.get("name", ""), preset.get("psp", ""), preset.get("type", "")))
+
+    def _selected_index(self):
+        selection = self.tree.selection()
+        if not selection:
+            return None
+        try:
+            return int(selection[0])
+        except ValueError:
+            return None
+
+    def on_select(self, event=None):
+        idx = self._selected_index()
+        if idx is None or idx >= len(self.presets):
+            return
+        preset = self.presets[idx]
+        self.name_var.set(preset.get("name", ""))
+        self.psp_var.set(preset.get("psp", ""))
+        self.type_var.set(preset.get("type", ""))
+
+    def add_or_update(self):
+        name = self.name_var.get().strip()
+        psp = self.psp_var.get().strip()
+        ltype = self.type_var.get().strip()
+        if not name:
+            messagebox.showerror("Preset", "Bitte gib einen Namen für das Preset an.")
+            return
+        if not psp and not ltype:
+            messagebox.showerror("Preset", "Mindestens PSP oder Leistungsart müssen gesetzt sein.")
+            return
+        idx = self._selected_index()
+        new_preset = {"name": name, "psp": psp, "type": ltype}
+        if idx is None or idx >= len(self.presets):
+            self.presets.append(new_preset)
+        else:
+            self.presets[idx] = new_preset
+        self.refresh_list()
+        if idx is not None and idx < len(self.presets):
+            self.tree.selection_set(str(idx))
+
+    def remove_selected(self):
+        idx = self._selected_index()
+        if idx is None or idx >= len(self.presets):
+            return
+        self.presets.pop(idx)
+        self.refresh_list()
+        self.name_var.set("")
+        self.psp_var.set("")
+        self.type_var.set("")
+
+    def save_and_close(self):
+        self.on_save(self.presets)
         self.destroy()
 
 
@@ -147,9 +326,12 @@ class TimeTrackerApp(tk.Tk):
         self.icon_image = self._load_icon()
 
         self.data = load_data()
+        self.entries = self.data["entries"]
+        self.presets = self.data["presets"]
         self.editing_index = None
 
         self.date_var = tk.StringVar(value=date.today().strftime(DATE_FORMAT))
+        self.preset_var = tk.StringVar()
         self.psp_var = tk.StringVar()
         self.type_var = tk.StringVar()
         self.desc_var = tk.StringVar()
@@ -265,6 +447,15 @@ class TimeTrackerApp(tk.Tk):
 
         self.day_display_var = tk.StringVar()
         ttk.Label(date_frame, textvariable=self.day_display_var, font=("Arial", 12, "bold")).pack(side=tk.RIGHT)
+
+        preset_bar = ttk.Frame(main_frame)
+        preset_bar.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(preset_bar, text="Preset:").pack(side=tk.LEFT)
+        self.preset_combo = ttk.Combobox(preset_bar, textvariable=self.preset_var, width=20, state="readonly")
+        self.preset_combo.pack(side=tk.LEFT, padx=(6, 6))
+        self.preset_combo.bind("<<ComboboxSelected>>", lambda _evt: self.apply_selected_preset())
+        ttk.Button(preset_bar, text="Apply", command=self.apply_selected_preset).pack(side=tk.LEFT)
+        ttk.Button(preset_bar, text="Manage Presets", command=self.open_preset_manager).pack(side=tk.LEFT, padx=(6, 0))
 
         # Input fields
         fields_frame = ttk.Frame(main_frame)
@@ -430,19 +621,54 @@ class TimeTrackerApp(tk.Tk):
             return date.today()
 
     def update_combobox_values(self):
-        self.psp_combo["values"] = collect_recent_values(self.data, "psp")
-        self.type_combo["values"] = collect_recent_values(self.data, "type")
+        self.psp_combo["values"] = collect_recent_values(self.entries, "psp")
+        self.type_combo["values"] = collect_recent_values(self.entries, "type")
         self._update_desc_values()
+        self._update_preset_values()
 
     def _update_desc_values(self):
         day_key = self.date_var.get().strip()
-        entries = self.data.get(day_key, [])
+        entries = self.entries.get(day_key, [])
         desc_values = []
         for entry in entries:
             desc = entry.get("desc", "")
             if desc and desc not in desc_values:
                 desc_values.append(desc)
         self.desc_combo["values"] = desc_values
+
+    def _preset_names(self):
+        names = []
+        for preset in self.presets:
+            name = preset.get("name")
+            if name:
+                names.append(name)
+        return names
+
+    def _update_preset_values(self):
+        names = self._preset_names()
+        self.preset_combo["values"] = names
+        current = self.preset_var.get()
+        if current and current not in names:
+            self.preset_var.set("")
+
+    def apply_selected_preset(self):
+        selected_name = self.preset_var.get()
+        for preset in self.presets:
+            if preset.get("name") == selected_name:
+                if preset.get("psp"):
+                    self.psp_var.set(preset.get("psp", ""))
+                if preset.get("type"):
+                    self.type_var.set(preset.get("type", ""))
+                return
+
+    def open_preset_manager(self):
+        PresetManager(self, self.presets, self._save_presets, self.icon_image)
+
+    def _save_presets(self, presets):
+        self.presets[:] = presets
+        self.data["presets"] = self.presets
+        self._update_preset_values()
+        save_data(self.data)
 
     def validate_fields(self):
         psp = self.psp_var.get().strip()
@@ -485,7 +711,7 @@ class TimeTrackerApp(tk.Tk):
             messagebox.showerror("Invalid input", str(exc))
             return
 
-        entries = ensure_date_bucket(self.data, day_key)
+        entries = ensure_date_bucket(self.entries, day_key)
         entries.append(entry)
 
         save_data(self.data)
@@ -504,7 +730,7 @@ class TimeTrackerApp(tk.Tk):
             messagebox.showerror("Invalid input", str(exc))
             return
 
-        entries = ensure_date_bucket(self.data, day_key)
+        entries = ensure_date_bucket(self.entries, day_key)
         if self.editing_index >= len(entries):
             messagebox.showinfo("Update entry", "Der ausgewählte Eintrag existiert nicht mehr.")
             self.reset_form()
@@ -531,6 +757,7 @@ class TimeTrackerApp(tk.Tk):
         return day_key, entry
 
     def reset_form(self):
+        self.preset_var.set("")
         self.psp_var.set("")
         self.type_var.set("")
         self.desc_var.set("")
@@ -547,7 +774,7 @@ class TimeTrackerApp(tk.Tk):
 
         day_key = self.date_var.get().strip()
         self._update_day_display(day_key)
-        entries = self.data.get(day_key, [])
+        entries = self.entries.get(day_key, [])
         self._update_desc_values()
         self.item_index_map = {}
         total_hours = 0.0
@@ -598,7 +825,7 @@ class TimeTrackerApp(tk.Tk):
             return
         idx = self.item_index_map[item_id]
         day_key = self.date_var.get().strip()
-        entries = self.data.get(day_key, [])
+        entries = self.entries.get(day_key, [])
         if idx >= len(entries):
             return
         entry = entries[idx]
@@ -630,7 +857,7 @@ class TimeTrackerApp(tk.Tk):
             return
         idx = self.item_index_map[item_id]
         day_key = self.date_var.get().strip()
-        entries = self.data.get(day_key, [])
+        entries = self.entries.get(day_key, [])
         if idx >= len(entries):
             return
         entries.pop(idx)
