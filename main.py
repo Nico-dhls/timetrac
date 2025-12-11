@@ -45,6 +45,8 @@ def collect_recent_values(data, field):
     values = []
     for day in sorted(data.keys(), reverse=True):
         for entry in reversed(data[day]):
+            if not isinstance(entry, dict):
+                continue
             value = entry.get(field, "")
             if value and value not in values:
                 values.append(value)
@@ -614,9 +616,9 @@ class TimeTrackerApp(tk.Tk):
             self.end_var.set(entry.get("end", ""))
             self.hours_var.set("")
         else:
-        self.hours_var.set(str(entry.get("hours", "")))
-        self.start_var.set("")
-        self.end_var.set("")
+            self.hours_var.set(str(entry.get("hours", "")))
+            self.start_var.set("")
+            self.end_var.set("")
         self._apply_time_mode()
         self.editing_index = idx
         self._toggle_update_button(True)
