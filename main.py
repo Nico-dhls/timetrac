@@ -444,6 +444,7 @@ class TimeTrackerApp(tk.Tk):
 
         ttk.Button(date_frame, text="Pick Date", command=self.open_calendar).pack(side=tk.LEFT)
         ttk.Button(date_frame, text="Today", command=self.set_today).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(date_frame, text="Yesterday", command=self.set_yesterday).pack(side=tk.LEFT, padx=(6, 0))
 
         self.day_display_var = tk.StringVar()
         ttk.Label(date_frame, textvariable=self.day_display_var, font=("Arial", 12, "bold")).pack(side=tk.RIGHT)
@@ -613,6 +614,9 @@ class TimeTrackerApp(tk.Tk):
 
     def set_today(self):
         self.set_selected_date(date.today())
+
+    def set_yesterday(self):
+        self.set_selected_date(date.today() - timedelta(days=1))
 
     def current_date_value(self):
         try:
