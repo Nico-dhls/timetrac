@@ -902,10 +902,10 @@ class TimeTrackerApp(tk.Tk):
             "",  # S.
             ltype,
             psp,
-            desc,
+            "",  # Bezeichnung (wird separat gesetzt)
             "",  # zweite Bezeichnung (optional)
-            "H",  # ME
-            hours_text,  # Summe
+            "",  # ME (nicht benötigt)
+            "",  # Summe (wird automatisch berechnet)
             *day_hours,
         ]
 
