@@ -898,8 +898,6 @@ class TimeTrackerApp(tk.Tk):
             day_hours[weekday_index] = hours_text
 
         columns = [
-            "",  # Z
-            "",  # S.
             ltype,
             psp,
             "",  # Bezeichnung (wird separat gesetzt)
