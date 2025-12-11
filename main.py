@@ -358,6 +358,10 @@ class TimeTrackerApp(tk.Tk):
         tree_frame.rowconfigure(0, weight=1)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
+        self.tree.bind("<Control-c>", self.copy_selection_to_clipboard)
+
+        self.copy_btn = ttk.Button(btn_frame, text="Copy", command=self.copy_selection_to_clipboard)
+        self.copy_btn.pack(side=tk.RIGHT, padx=(0, 8))
 
         self.update_combobox_values()
         self.desc_combo["values"] = []
@@ -618,6 +622,27 @@ class TimeTrackerApp(tk.Tk):
         self._apply_time_mode()
         self.editing_index = idx
         self._toggle_update_button(True)
+
+    def _format_tree_values(self, values):
+        return "\t".join(values)
+
+    def copy_selection_to_clipboard(self, event=None):
+        selection = self.tree.selection()
+        if not selection:
+            messagebox.showinfo("Copy", "Bitte wähle einen Eintrag aus.")
+            return
+
+        item_id = selection[0]
+        item_values = self.tree.item(item_id, "values")
+        if not item_values:
+            messagebox.showinfo("Copy", "Keine Werte zum Kopieren gefunden.")
+            return
+
+        formatted = self._format_tree_values(item_values)
+        self.clipboard_clear()
+        self.clipboard_append(formatted)
+        self.update()
+        messagebox.showinfo("Copy", "Eintrag in die Zwischenablage kopiert.")
 
     def delete_entry(self):
         selection = self.tree.selection()
