@@ -874,19 +874,13 @@ class TimeTrackerApp(tk.Tk):
             return "break"
 
         item_id = selection[0]
-        group_id = item_id
-        if not self.tree.tag_has("group", item_id):
-            parent_id = self.tree.parent(item_id)
-            if parent_id and self.tree.tag_has("group", parent_id):
-                group_id = parent_id
-
-        values = self.tree.item(group_id, "values")
+        values = self.tree.item(item_id, "values")
         if not values:
             return "break"
 
-        psp, ltype, desc, *_rest, hours = values
         day_key = self.date_var.get().strip()
-        parts = [day_key, psp, ltype, desc, hours]
+        psp, ltype, desc, start, end, hours = values
+        parts = [day_key, psp, ltype, desc, start, end, hours]
         text = "\t".join(part for part in parts if part)
 
         self.clipboard_clear()
