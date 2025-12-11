@@ -900,6 +900,7 @@ class TimeTrackerApp(tk.Tk):
         columns = [
             ltype,
             psp,
+            "",  # H (nicht benötigt, aber vorhanden)
             "",  # Bezeichnung (wird separat gesetzt)
             "",  # zweite Bezeichnung (optional)
             "",  # ME (nicht benötigt)
