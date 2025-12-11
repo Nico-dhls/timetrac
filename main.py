@@ -907,7 +907,9 @@ class TimeTrackerApp(tk.Tk):
             *day_hours,
         ]
 
-        text = "\t".join(columns)
+        # Add a trailing newline so SAP treats the clipboard content as a full row
+        # and advances through all columns instead of stopping after the first field.
+        text = "\t".join(columns) + "\r\n"
 
         self.clipboard_clear()
         self.clipboard_append(text)
