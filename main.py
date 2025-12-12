@@ -569,6 +569,10 @@ class TimeTrackerApp(tk.Tk):
         self.tree.bind("<Control-c>", self.copy_selection)
         self.tree.bind("<Control-C>", self.copy_selection)
 
+        footer = ttk.Frame(main_frame)
+        footer.pack(fill=tk.X, pady=(10, 0))
+        ttk.Label(footer, text="© 2025 Nico Dahlhaus – TimeTrac", font=("Arial", 9)).pack(side=tk.RIGHT)
+
         self.update_combobox_values()
         self.desc_combo["values"] = []
         self._apply_time_mode()
