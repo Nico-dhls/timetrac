@@ -456,7 +456,7 @@ class TimeTrackerApp(tk.Tk):
             branding_frame,
             text="© 2025 Nico Dahlhaus – TimeTrac",
             font=("Arial", 8),
-        ).pack(side=tk.LEFT, anchor=tk.NW)
+        ).pack(side=tk.RIGHT, anchor=tk.NE)
 
         # Date selection
         date_frame = ttk.Frame(main_frame)
