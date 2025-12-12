@@ -1,6 +1,6 @@
 # TimeTrac
 
-[![Build and Sign EXE](https://github.com/<OWNER>/<REPO>/actions/workflows/build-and-sign.yml/badge.svg)](https://github.com/<OWNER>/<REPO>/actions/workflows/build-and-sign.yml)
+[![Build and Sign EXE](https://github.com/Nico-dhls/timetrac/actions/workflows/build-and-sign.yml/badge.svg)](https://github.com/Nico-dhls/timetrac/actions/workflows/build-and-sign.yml)
 
 TimeTrac ist eine desktopbasierte Zeiterfassung mit moderner Tk-Oberfläche. Das Tool hilft dir, Tätigkeiten pro Tag zu protokollieren, Zeiten zu gruppieren und häufig genutzte Werte schneller auszuwählen.
 
