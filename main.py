@@ -450,6 +450,14 @@ class TimeTrackerApp(tk.Tk):
         main_frame = ttk.Frame(self, padding=12)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        branding_frame = ttk.Frame(main_frame)
+        branding_frame.pack(fill=tk.X, pady=(0, 6))
+        ttk.Label(
+            branding_frame,
+            text="© 2025 Nico Dahlhaus – TimeTrac",
+            font=("Arial", 8),
+        ).pack(side=tk.LEFT, anchor=tk.NW)
+
         # Date selection
         date_frame = ttk.Frame(main_frame)
         date_frame.pack(fill=tk.X, pady=(0, 12))
@@ -568,10 +576,6 @@ class TimeTrackerApp(tk.Tk):
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
         self.tree.bind("<Control-c>", self.copy_selection)
         self.tree.bind("<Control-C>", self.copy_selection)
-
-        footer = ttk.Frame(main_frame)
-        footer.pack(fill=tk.X, pady=(10, 0))
-        ttk.Label(footer, text="© 2025 Nico Dahlhaus – TimeTrac", font=("Arial", 9)).pack(side=tk.RIGHT)
 
         self.update_combobox_values()
         self.desc_combo["values"] = []
