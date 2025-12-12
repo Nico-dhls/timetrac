@@ -1,11 +1,25 @@
+Timetrac Non-Commercial License (NC-1.0)
+
 Copyright (c) 2025 Nico Dahlhaus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software to use, copy, modify, and distribute it for non-commercial
-purposes only.
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and distribute the Software, provided that such use is strictly
+for non-commercial purposes.
 
-Commercial use, including selling, sublicensing, or offering the software
-as part of a paid product or service, is strictly prohibited without prior
-written permission from the author.
+Commercial use is strictly prohibited. Commercial use includes, but is not
+limited to:
+- selling the Software or derivatives of it
+- sublicensing the Software for a fee
+- including the Software as part of a paid product or service
+- offering the Software commercially or for profit
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+Any commercial use requires prior written permission from the copyright holder.
+
+The Software is provided "AS IS", without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability,
+fitness for a particular purpose, and noninfringement. In no event shall the
+authors or copyright holders be liable for any claim, damages, or other
+liability, whether in an action of contract, tort, or otherwise, arising from,
+out of, or in connection with the Software or the use or other dealings in the
+Software.
