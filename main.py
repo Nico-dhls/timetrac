@@ -450,6 +450,14 @@ class TimeTrackerApp(tk.Tk):
         main_frame = ttk.Frame(self, padding=12)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        branding_frame = ttk.Frame(main_frame)
+        branding_frame.pack(fill=tk.X, pady=(0, 6))
+        ttk.Label(
+            branding_frame,
+            text="© 2025 Nico Dahlhaus – TimeTrac",
+            font=("Arial", 8),
+        ).pack(side=tk.RIGHT, anchor=tk.NE)
+
         # Date selection
         date_frame = ttk.Frame(main_frame)
         date_frame.pack(fill=tk.X, pady=(0, 12))
