@@ -66,12 +66,18 @@ jobs:
             /fd SHA256 /tr "http://timestamp.sectigo.com" /td SHA256 `
             $exe
 
-      - name: Verify signature (non-fatal)
+      - name: Verify signature (non-fatal for self-signed)
         shell: pwsh
         run: |
-          & "$env:SIGNTOOL" verify /pa ".\dist\timetrac.exe" ; $code=$LASTEXITCODE
+          & "$env:SIGNTOOL" verify /pa ".\dist\timetrac.exe"
+          $code = $LASTEXITCODE
+      
           Get-AuthenticodeSignature ".\dist\timetrac.exe" | Format-List Status,StatusMessage
-          if ($code -ne 0) { Write-Host "Verify failed on runner (trust store). Continuing."; exit 0 }
+      
+          if ($code -ne 0) {
+            Write-Host "Verify failed because certificate is self-signed / untrusted on the runner. Continuing."
+            exit 0
+          }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
