@@ -79,6 +79,16 @@ jobs:
             exit 0
           }
 
+      - name: Package (zip)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ".\release" | Out-Null
+
+          Copy-Item ".\dist\timetrac.exe" ".\release\timetrac.exe" -Force
+          Copy-Item ".\LICENSE" ".\release\LICENSE" -Force
+
+          Compress-Archive -Path ".\release\*" -DestinationPath ".\dist\timetrac.zip" -Force
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
