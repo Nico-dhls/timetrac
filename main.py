@@ -931,7 +931,7 @@ class TimeTrackerApp(tk.Tk):
         tree_frame.grid_columnconfigure(0, weight=1)
         tree_frame.grid_rowconfigure(0, weight=1)
 
-        columns = ("psp", "type", "desc", "start", "end", "hours")
+        columns = ("psp", "type", "desc", "hours")
         self.tree = ttk.Treeview(
             tree_frame,
             columns=columns,
@@ -945,8 +945,6 @@ class TimeTrackerApp(tk.Tk):
             "psp": "PSP",
             "type": "Leistungsart",
             "desc": "Beschreibung",
-            "start": "Start",
-            "end": "Ende",
             "hours": "Stunden",
         }
         for col, title in headings.items():
@@ -956,9 +954,6 @@ class TimeTrackerApp(tk.Tk):
             if col == "hours":
                 width = 180
                 minwidth = 160
-            elif col in {"start", "end"}:
-                width = 150
-                minwidth = 130
             elif col == "desc":
                 width = 320
                 minwidth = 200
@@ -1239,7 +1234,7 @@ class TimeTrackerApp(tk.Tk):
                 "end",
                 iid=parent_id,
                 text="",
-                values=(psp, ltype, desc, "—", "—", f"{group_hours:.2f}"),
+                values=(psp, ltype, desc, f"{group_hours:.2f}"),
                 open=False,
                 tags=("group",),
             )
@@ -1256,8 +1251,6 @@ class TimeTrackerApp(tk.Tk):
                         entry.get("psp", ""),
                         entry.get("type", ""),
                         entry.get("desc", ""),
-                        entry.get("start", ""),
-                        entry.get("end", ""),
                         f"{hours:.2f}",
                     ),
                 )
@@ -1315,7 +1308,7 @@ class TimeTrackerApp(tk.Tk):
         except ValueError:
             return "break"
 
-        psp, ltype, desc, _, _, hours = values
+        psp, ltype, desc, hours = values
         hours_value = str(hours).replace(",", ".")
         try:
             hours_float = float(hours_value)
