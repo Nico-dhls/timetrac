@@ -92,3 +92,5 @@ jobs:
             timetrac.zip
             timetrac.zip.sha256
           generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
