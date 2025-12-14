@@ -403,8 +403,8 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("1260x760")
-        self.minsize(1180, 720)
+        self.geometry("1400x820")
+        self.minsize(1320, 780)
         self.configure(bg="#0f1629")
         self.resizable(True, True)
 
@@ -753,7 +753,7 @@ class TimeTrackerApp(tk.Tk):
     def build_ui(self):
         main_frame = tk.Frame(self, bg=self._colors["base"])
         main_frame.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
-        main_frame.grid_columnconfigure(0, weight=11, uniform="cards")
+        main_frame.grid_columnconfigure(0, weight=12, uniform="cards")
         main_frame.grid_columnconfigure(1, weight=14, uniform="cards")
 
         form_card = self._card(main_frame)
@@ -769,21 +769,21 @@ class TimeTrackerApp(tk.Tk):
 
         date_frame = ttk.Frame(form_card, style="Card.TFrame")
         date_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
-        date_frame.grid_columnconfigure(4, weight=1)
+        date_frame.grid_columnconfigure(1, weight=1)
 
         date_label = ttk.Label(date_frame, text="Datum:", style="Card.TLabel")
         date_label.grid(row=0, column=0, sticky="w")
         date_entry = ttk.Entry(date_frame, width=12, textvariable=self.date_var)
-        date_entry.grid(row=0, column=1, padx=(8, 10))
+        date_entry.grid(row=0, column=1, padx=(8, 10), sticky="w")
 
         ttk.Button(date_frame, text="Kalender", style="ToolbarRounded.TButton", command=self.open_calendar).grid(row=0, column=2, padx=(0, 8))
         ttk.Button(date_frame, text="Heute", style="ToolbarRounded.TButton", command=self.set_today).grid(row=0, column=3, padx=(0, 8))
-        ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=4, sticky="w")
+        ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=4, padx=(0, 4))
 
         self.day_display_var = tk.StringVar()
-        ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=5, sticky="e", padx=(10, 0))
+        ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=1, column=0, columnspan=4, sticky="w", pady=(8, 0))
         date_info = ttk.Label(date_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        date_info.grid(row=0, column=6, padx=(10, 0))
+        date_info.grid(row=1, column=4, padx=(6, 0), sticky="w")
         Tooltip(
             date_info,
             "Schnell auf heute/gestern springen oder einen Tag über den Kalender auswählen.",
@@ -793,16 +793,15 @@ class TimeTrackerApp(tk.Tk):
 
         preset_bar = ttk.Frame(form_card, style="Card.TFrame")
         preset_bar.grid(row=3, column=0, sticky="ew", pady=(0, 12))
-        preset_bar.grid_columnconfigure(2, weight=1)
+        preset_bar.grid_columnconfigure(1, weight=1)
         preset_label = ttk.Label(preset_bar, text="Vorlage:", style="Card.TLabel")
         preset_label.grid(row=0, column=0, sticky="w")
         self.preset_combo = ttk.Combobox(preset_bar, textvariable=self.preset_var, width=22, state="readonly")
-        self.preset_combo.grid(row=0, column=1, padx=(8, 8))
+        self.preset_combo.grid(row=0, column=1, padx=(8, 8), sticky="ew")
         self.preset_combo.bind("<<ComboboxSelected>>", lambda _evt: self.apply_selected_preset())
-        ttk.Button(preset_bar, text="Anwenden", style="AccentRounded.TButton", command=self.apply_selected_preset).grid(row=0, column=2, sticky="w")
-        ttk.Button(preset_bar, text="Vorlagen verwalten", style="ToolbarRounded.TButton", command=self.open_preset_manager).grid(row=0, column=3, padx=(8, 0), sticky="e")
+        ttk.Button(preset_bar, text="Vorlagen verwalten", style="ToolbarRounded.TButton", command=self.open_preset_manager).grid(row=0, column=2, padx=(8, 0), sticky="e")
         preset_info = ttk.Label(preset_bar, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        preset_info.grid(row=0, column=4, padx=(8, 0))
+        preset_info.grid(row=0, column=3, padx=(8, 0))
         Tooltip(
             preset_info,
             "Vorlagen füllen PSP und Leistungsart automatisch aus.",
@@ -934,12 +933,17 @@ class TimeTrackerApp(tk.Tk):
         }
         for col, title in headings.items():
             self.tree.heading(col, text=title)
-            width = 170
+            width = 180
+            minwidth = 120
             if col == "hours":
-                width = 120
+                width = 150
+                minwidth = 140
+            elif col in {"start", "end"}:
+                width = 140
             elif col == "desc":
-                width = 280
-            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=110, stretch=True)
+                width = 300
+                minwidth = 180
+            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=minwidth, stretch=True)
 
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
