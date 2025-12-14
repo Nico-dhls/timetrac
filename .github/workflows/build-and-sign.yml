@@ -91,6 +91,4 @@ jobs:
           files: |
             timetrac.zip
             timetrac.zip.sha256
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: false
