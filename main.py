@@ -403,7 +403,8 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("980x640")
+        self.geometry("1260x760")
+        self.minsize(1180, 720)
         self.configure(bg="#0f1629")
         self.resizable(True, True)
 
@@ -456,12 +457,12 @@ class TimeTrackerApp(tk.Tk):
         card_bg = "#141c2f"
         field_bg = "#18233d"
         focus_bg = "#233a5e"
-        accent = "#7b61ff"
-        accent_active = "#2dd4ff"
+        accent = "#8b6bff"
+        accent_active = "#35dcff"
         fg = "#e6e8ef"
         muted = "#9fb3d2"
         border = "#1f2b3d"
-        card_alt = "#172238"
+        card_alt = "#1d2943"
         self._colors = {
             "field_bg": field_bg,
             "focus_bg": focus_bg,
@@ -544,8 +545,8 @@ class TimeTrackerApp(tk.Tk):
             background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
         )
-        toolbar_normal = self._rounded_rect_image("#304878", card_bg, radius=9)
-        toolbar_hover = self._rounded_rect_image("#3d5d9b", card_bg, radius=9)
+        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=11)
+        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=11)
         accent_img = self._rounded_rect_image(accent, card_bg, radius=10)
         accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=10)
         danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=10)
@@ -589,10 +590,11 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "ToolbarRounded.TButton",
-            foreground=fg,
-            padding=10,
-            background="#304878",
+            foreground="#f4f6fb",
+            padding=12,
+            background="#4b6fb0",
             borderwidth=0,
+            font=("Segoe UI", 11, "bold"),
         )
         style.element_create(
             "AccentRounded.border",
@@ -631,7 +633,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "AccentRounded.TButton",
             foreground="#ffffff",
-            padding=12,
+            padding=13,
             background=accent,
             borderwidth=0,
             font=("Segoe UI", 11, "bold"),
@@ -750,9 +752,9 @@ class TimeTrackerApp(tk.Tk):
 
     def build_ui(self):
         main_frame = tk.Frame(self, bg=self._colors["base"])
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
-        main_frame.grid_columnconfigure(0, weight=1, uniform="cards")
-        main_frame.grid_columnconfigure(1, weight=1, uniform="cards")
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        main_frame.grid_columnconfigure(0, weight=11, uniform="cards")
+        main_frame.grid_columnconfigure(1, weight=14, uniform="cards")
 
         form_card = self._card(main_frame)
         form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
@@ -917,7 +919,7 @@ class TimeTrackerApp(tk.Tk):
             tree_frame,
             columns=columns,
             show="tree headings",
-            height=14,
+            height=16,
         )
         self.tree.heading("#0", text="")
         self.tree.column("#0", width=24, anchor=tk.W, minwidth=24, stretch=False)
@@ -932,12 +934,12 @@ class TimeTrackerApp(tk.Tk):
         }
         for col, title in headings.items():
             self.tree.heading(col, text=title)
-            width = 150
+            width = 170
             if col == "hours":
-                width = 110
+                width = 120
             elif col == "desc":
-                width = 220
-            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=90)
+                width = 280
+            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=110, stretch=True)
 
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
