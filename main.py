@@ -421,9 +421,9 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("1500x820")
-        self.minsize(1380, 780)
-        self.configure(bg="#0f1629")
+        self.geometry("1480x760")
+        self.minsize(1340, 700)
+        self.configure(bg="#070d1c")
         self.resizable(True, True)
 
         self.icon_image = self._load_icon()
@@ -472,16 +472,17 @@ class TimeTrackerApp(tk.Tk):
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        base_bg = "#0f1629"
-        card_bg = "#141c2f"
-        field_bg = "#18233d"
-        focus_bg = "#233a5e"
-        accent = "#8b6bff"
-        accent_active = "#35dcff"
-        fg = "#e6e8ef"
-        muted = "#9fb3d2"
-        border = "#1f2b3d"
-        card_alt = "#1d2943"
+        base_bg = "#070d1c"
+        card_bg = "#0e162b"
+        field_bg = "#111c33"
+        focus_bg = "#1a2d4c"
+        accent = "#8d7bff"
+        accent_active = "#4ee0ff"
+        fg = "#eef2ff"
+        muted = "#9fb6de"
+        border = "#1a2742"
+        card_alt = "#122041"
+        accent_soft = "#355ca3"
         self._colors = {
             "field_bg": field_bg,
             "focus_bg": focus_bg,
@@ -492,6 +493,7 @@ class TimeTrackerApp(tk.Tk):
             "muted": muted,
             "border": border,
             "card_alt": card_alt,
+            "accent_soft": accent_soft,
         }
         self._img_refs = []
         self.option_add("*Font", ("Segoe UI", 11))
@@ -532,7 +534,7 @@ class TimeTrackerApp(tk.Tk):
             "TButton",
             background=card_alt,
             foreground=fg,
-            padding=7,
+            padding=6,
             borderwidth=0,
         )
         style.map(
@@ -544,7 +546,7 @@ class TimeTrackerApp(tk.Tk):
             "Ghost.TButton",
             background=card_bg,
             foreground=fg,
-            padding=6,
+            padding=5,
             borderwidth=0,
         )
         style.map(
@@ -556,7 +558,7 @@ class TimeTrackerApp(tk.Tk):
             "Accent.TButton",
             background=accent,
             foreground="#ffffff",
-            padding=8,
+            padding=6,
             borderwidth=0,
         )
         style.map(
@@ -564,12 +566,12 @@ class TimeTrackerApp(tk.Tk):
             background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
         )
-        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=10)
-        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=10)
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=8)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=8)
-        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=8)
-        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=8)
+        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=9)
+        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=9)
+        accent_img = self._rounded_rect_image(accent, card_bg, radius=7)
+        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=7)
+        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=7)
+        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=7)
         self._img_refs.extend(
             [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
         )
@@ -610,7 +612,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "ToolbarRounded.TButton",
             foreground="#f4f6fb",
-            padding=7,
+            padding=6,
             background="#4b6fb0",
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
@@ -652,7 +654,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "AccentRounded.TButton",
             foreground="#ffffff",
-            padding=8,
+            padding=6,
             background=accent,
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
@@ -694,7 +696,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "DangerRounded.TButton",
             foreground="#ffffff",
-            padding=7,
+            padding=6,
             background="#d14b64",
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
@@ -707,6 +709,7 @@ class TimeTrackerApp(tk.Tk):
             bordercolor=border,
             lightcolor=accent,
             darkcolor=border,
+            padding=6,
         )
         style.map(
             "TEntry",
@@ -716,16 +719,17 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "Date.TEntry",
-            fieldbackground="#233354",
+            fieldbackground="#20365d",
             foreground=fg,
             insertcolor=fg,
-            bordercolor="#4d82d9",
-            lightcolor="#4d82d9",
+            bordercolor="#5f8bdc",
+            lightcolor="#5f8bdc",
             darkcolor=border,
+            padding=8,
         )
         style.map(
             "Date.TEntry",
-            fieldbackground=[("focus", "#2b4670")],
+            fieldbackground=[("focus", "#294a7c")],
             bordercolor=[("focus", accent_active)],
         )
         style.configure(
@@ -743,30 +747,30 @@ class TimeTrackerApp(tk.Tk):
             foreground=[("readonly", fg)],
         )
         style.configure(
-            "Treeview",
+            "Modern.Treeview",
             background=card_bg,
             fieldbackground=card_bg,
             foreground=fg,
-            rowheight=28,
+            rowheight=30,
             borderwidth=0,
             highlightthickness=0,
         )
         style.map(
-            "Treeview",
-            background=[("selected", accent)],
+            "Modern.Treeview",
+            background=[("selected", "#1f3d69")],
             foreground=[("selected", "#ffffff")],
         )
         style.configure(
-            "Treeview.Heading",
-            background=border,
+            "Modern.Treeview.Heading",
+            background=card_alt,
             foreground=fg,
             relief="flat",
             font=("Segoe UI", 10, "bold"),
-            padding=6,
+            padding=8,
         )
         style.map(
-            "Treeview.Heading",
-            background=[("active", accent_active)],
+            "Modern.Treeview.Heading",
+            background=[("active", focus_bg)],
             foreground=[("active", "#ffffff")],
         )
 
@@ -776,8 +780,8 @@ class TimeTrackerApp(tk.Tk):
             bg=self._colors["card"],
             bd=0,
             highlightthickness=1,
-            highlightbackground=self._colors["border"],
-            highlightcolor=self._colors["border"],
+            highlightbackground=self._colors["accent_soft"],
+            highlightcolor=self._colors["accent_soft"],
             padx=16,
             pady=16,
         )
@@ -806,15 +810,36 @@ class TimeTrackerApp(tk.Tk):
 
         date_label = ttk.Label(date_frame, text="Datum:", style="Card.TLabel")
         date_label.grid(row=0, column=0, sticky="w")
-        date_entry = ttk.Entry(
+
+        date_shell = tk.Frame(
             date_frame,
-            width=14,
+            bg="#1b2f52",
+            highlightthickness=1,
+            highlightbackground=self._colors["accent_soft"],
+            bd=0,
+        )
+        date_shell.grid(row=0, column=1, padx=(10, 12), sticky="ew")
+        date_shell.grid_columnconfigure(1, weight=1)
+
+        date_icon = tk.Label(
+            date_shell,
+            text="📅",
+            bg="#1b2f52",
+            fg=self._colors["muted"],
+            font=("Segoe UI", 12),
+        )
+        date_icon.grid(row=0, column=0, padx=(10, 6), pady=6)
+
+        date_entry = ttk.Entry(
+            date_shell,
+            width=18,
             textvariable=self.date_var,
             style="Date.TEntry",
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 12, "bold"),
         )
-        date_entry.grid(row=0, column=1, padx=(10, 12), sticky="ew")
+        date_entry.grid(row=0, column=1, padx=(0, 12), pady=6, sticky="ew")
         date_entry.bind("<Button-1>", self.open_calendar)
+        date_icon.bind("<Button-1>", self.open_calendar)
 
         ttk.Button(date_frame, text="Heute", style="ToolbarRounded.TButton", command=self.set_today).grid(row=0, column=2, padx=(0, 8))
         ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=3, padx=(0, 4))
@@ -957,7 +982,8 @@ class TimeTrackerApp(tk.Tk):
             tree_frame,
             columns=columns,
             show="tree headings",
-            height=16,
+            height=17,
+            style="Modern.Treeview",
         )
         self.tree.heading("#0", text="")
         self.tree.column("#0", width=24, anchor=tk.W, minwidth=24, stretch=False)
@@ -973,11 +999,11 @@ class TimeTrackerApp(tk.Tk):
             width = 200
             minwidth = 150
             if col == "hours":
-                width = 180
-                minwidth = 160
+                width = 210
+                minwidth = 190
             elif col == "desc":
-                width = 320
-                minwidth = 200
+                width = 360
+                minwidth = 260
             self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=minwidth, stretch=True)
 
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
