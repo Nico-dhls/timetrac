@@ -129,19 +129,36 @@ class CalendarPicker(tk.Toplevel):
             self.iconphoto(False, icon_image)
 
         self._style = ttk.Style(self)
+        shared_bg = "#101a2e"
+        self._style.configure("Calendar.TFrame", background=shared_bg)
         self._style.configure(
             "CalendarDay.TButton",
             padding=4,
+            background="#1b2b44",
+            foreground="#e6e8ef",
+            bordercolor="#1b2b44",
+        )
+        self._style.map(
+            "CalendarDay.TButton",
+            background=[("active", "#233756")],
+            foreground=[("active", "#ffffff")],
         )
         self._style.configure(
             "CalendarHeader.TLabel",
-            background="#1e1e1e",
+            background=shared_bg,
             foreground="#d4d4d4",
+        )
+        self._style.configure(
+            "CalendarMonth.TLabel",
+            background=shared_bg,
+            foreground="#e6e8ef",
+            font=("Segoe UI", 10, "bold"),
         )
         self._style.configure(
             "SelectedWeek.TButton",
             background="#2a3f55",
             foreground="#d4d4d4",
+            bordercolor="#2a3f55",
         )
         self._style.configure(
             "SelectedWeek.TLabel",
@@ -152,6 +169,7 @@ class CalendarPicker(tk.Toplevel):
             "SelectedDay.TButton",
             background="#569cd6",
             foreground="#ffffff",
+            bordercolor="#569cd6",
         )
         self._style.map(
             "SelectedDay.TButton",
@@ -162,19 +180,19 @@ class CalendarPicker(tk.Toplevel):
         self.month_var = tk.IntVar(value=current_date.month)
         self.year_var = tk.IntVar(value=current_date.year)
 
-        header = ttk.Frame(self)
+        header = ttk.Frame(self, style="Calendar.TFrame")
         header.pack(fill=tk.X, pady=(0, 8))
 
         prev_btn = ttk.Button(header, text="◀", width=3, command=self.prev_month)
         prev_btn.pack(side=tk.LEFT)
 
-        self.month_label = ttk.Label(header, text="")
+        self.month_label = ttk.Label(header, text="", style="CalendarMonth.TLabel")
         self.month_label.pack(side=tk.LEFT, expand=True)
 
         next_btn = ttk.Button(header, text="▶", width=3, command=self.next_month)
         next_btn.pack(side=tk.RIGHT)
 
-        self.days_frame = ttk.Frame(self)
+        self.days_frame = ttk.Frame(self, style="Calendar.TFrame")
         self.days_frame.pack()
 
         self.build_calendar()
