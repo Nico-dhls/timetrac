@@ -363,8 +363,8 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("860x560")
-        self.configure(bg="#1e1e1e")
+        self.geometry("980x640")
+        self.configure(bg="#0f1629")
         self.resizable(True, True)
 
         self.icon_image = self._load_icon()
@@ -393,20 +393,38 @@ class TimeTrackerApp(tk.Tk):
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        base_bg = "#1e1e1e"
-        panel_bg = "#252526"
-        field_bg = "#2d2d2d"
-        focus_bg = "#1f3c53"
-        accent = "#569cd6"
-        accent_active = "#6cb8ff"
-        fg = "#d4d4d4"
+        base_bg = "#0f1629"
+        card_bg = "#141c2f"
+        field_bg = "#18233d"
+        focus_bg = "#233a5e"
+        accent = "#7b61ff"
+        accent_active = "#2dd4ff"
+        fg = "#e6e8ef"
+        muted = "#9fb3d2"
+        border = "#1f2b3d"
+        card_alt = "#172238"
         self._colors = {
             "field_bg": field_bg,
             "focus_bg": focus_bg,
+            "base": base_bg,
+            "card": card_bg,
+            "accent": accent,
+            "accent_active": accent_active,
+            "muted": muted,
+            "border": border,
+            "card_alt": card_alt,
         }
+        self.option_add("*Font", ("Segoe UI", 11))
+        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 11))
+        self.option_add("*TCombobox*Listbox.background", field_bg)
+        self.option_add("*TCombobox*Listbox.foreground", fg)
         style.configure(
             "TFrame",
             background=base_bg,
+        )
+        style.configure(
+            "Card.TFrame",
+            background=card_bg,
         )
         style.configure(
             "TLabel",
@@ -414,14 +432,56 @@ class TimeTrackerApp(tk.Tk):
             foreground=fg,
         )
         style.configure(
-            "TButton",
-            background=panel_bg,
+            "Card.TLabel",
+            background=card_bg,
             foreground=fg,
-            padding=6,
+        )
+        style.configure(
+            "Title.TLabel",
+            background=card_bg,
+            foreground="#ffffff",
+            font=("Segoe UI", 16, "bold"),
+        )
+        style.configure(
+            "Subtle.TLabel",
+            background=card_bg,
+            foreground=muted,
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "TButton",
+            background=card_alt,
+            foreground=fg,
+            padding=10,
+            borderwidth=0,
         )
         style.map(
             "TButton",
-            background=[("active", accent)],
+            background=[("active", focus_bg)],
+            foreground=[("active", "#ffffff")],
+        )
+        style.configure(
+            "Ghost.TButton",
+            background=card_bg,
+            foreground=fg,
+            padding=8,
+            borderwidth=0,
+        )
+        style.map(
+            "Ghost.TButton",
+            background=[("active", focus_bg)],
+            foreground=[("active", "#ffffff")],
+        )
+        style.configure(
+            "Accent.TButton",
+            background=accent,
+            foreground="#ffffff",
+            padding=12,
+            borderwidth=0,
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
         )
         style.configure(
@@ -429,6 +489,9 @@ class TimeTrackerApp(tk.Tk):
             fieldbackground=field_bg,
             foreground=fg,
             insertcolor=fg,
+            bordercolor=border,
+            lightcolor=accent,
+            darkcolor=border,
         )
         style.map(
             "TEntry",
@@ -442,6 +505,7 @@ class TimeTrackerApp(tk.Tk):
             background=field_bg,
             foreground=fg,
             arrowcolor="#f3f3f3",
+            bordercolor=border,
         )
         style.map(
             "TCombobox",
@@ -451,11 +515,12 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "Treeview",
-            background=field_bg,
-            fieldbackground=field_bg,
+            background=card_bg,
+            fieldbackground=card_bg,
             foreground=fg,
-            rowheight=26,
+            rowheight=28,
             borderwidth=0,
+            highlightthickness=0,
         )
         style.map(
             "Treeview",
@@ -464,9 +529,11 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "Treeview.Heading",
-            background=panel_bg,
+            background=border,
             foreground=fg,
             relief="flat",
+            font=("Segoe UI", 10, "bold"),
+            padding=6,
         )
         style.map(
             "Treeview.Heading",
@@ -474,97 +541,134 @@ class TimeTrackerApp(tk.Tk):
             foreground=[("active", "#ffffff")],
         )
 
+    def _card(self, parent):
+        frame = tk.Frame(
+            parent,
+            bg=self._colors["card"],
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=self._colors["border"],
+            highlightcolor=self._colors["border"],
+            padx=16,
+            pady=16,
+        )
+        return frame
+
     def build_ui(self):
-        main_frame = ttk.Frame(self, padding=12)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = tk.Frame(self, bg=self._colors["base"])
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
+        main_frame.grid_columnconfigure(0, weight=1, uniform="cards")
+        main_frame.grid_columnconfigure(1, weight=1, uniform="cards")
 
-        # Date selection
-        date_frame = ttk.Frame(main_frame)
-        date_frame.pack(fill=tk.X, pady=(0, 12))
+        form_card = self._card(main_frame)
+        form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        form_card.grid_columnconfigure(0, weight=1)
 
-        ttk.Label(date_frame, text="Datum:").pack(side=tk.LEFT)
+        ttk.Label(form_card, text="Zeiterfassung", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            form_card,
+            text="Erfasse Zeiten schneller mit modernen Eingabeelementen.",
+            style="Subtle.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(2, 12))
+
+        date_frame = ttk.Frame(form_card, style="Card.TFrame")
+        date_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        date_frame.grid_columnconfigure(4, weight=1)
+
+        ttk.Label(date_frame, text="Datum:", style="Card.TLabel").grid(row=0, column=0, sticky="w")
         date_entry = ttk.Entry(date_frame, width=12, textvariable=self.date_var)
-        date_entry.pack(side=tk.LEFT, padx=(6, 6))
+        date_entry.grid(row=0, column=1, padx=(8, 10))
 
-        ttk.Button(date_frame, text="Datum auswählen", command=self.open_calendar).pack(side=tk.LEFT)
-        ttk.Button(date_frame, text="Heute", command=self.set_today).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(date_frame, text="Gestern", command=self.set_yesterday).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(date_frame, text="Kalender", style="Ghost.TButton", command=self.open_calendar).grid(row=0, column=2, padx=(0, 8))
+        ttk.Button(date_frame, text="Heute", style="Ghost.TButton", command=self.set_today).grid(row=0, column=3, padx=(0, 8))
+        ttk.Button(date_frame, text="Gestern", style="Ghost.TButton", command=self.set_yesterday).grid(row=0, column=4, sticky="w")
 
         self.day_display_var = tk.StringVar()
-        ttk.Label(date_frame, textvariable=self.day_display_var, font=("Arial", 12, "bold")).pack(side=tk.RIGHT)
+        ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=5, sticky="e", padx=(10, 0))
 
-        preset_bar = ttk.Frame(main_frame)
-        preset_bar.pack(fill=tk.X, pady=(0, 8))
-        ttk.Label(preset_bar, text="Vorlage:").pack(side=tk.LEFT)
-        self.preset_combo = ttk.Combobox(preset_bar, textvariable=self.preset_var, width=20, state="readonly")
-        self.preset_combo.pack(side=tk.LEFT, padx=(6, 6))
+        preset_bar = ttk.Frame(form_card, style="Card.TFrame")
+        preset_bar.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+        preset_bar.grid_columnconfigure(2, weight=1)
+        ttk.Label(preset_bar, text="Vorlage:", style="Card.TLabel").grid(row=0, column=0, sticky="w")
+        self.preset_combo = ttk.Combobox(preset_bar, textvariable=self.preset_var, width=22, state="readonly")
+        self.preset_combo.grid(row=0, column=1, padx=(8, 8))
         self.preset_combo.bind("<<ComboboxSelected>>", lambda _evt: self.apply_selected_preset())
-        ttk.Button(preset_bar, text="Anwenden", command=self.apply_selected_preset).pack(side=tk.LEFT)
-        ttk.Button(preset_bar, text="Vorlagen verwalten", command=self.open_preset_manager).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(preset_bar, text="Anwenden", style="Ghost.TButton", command=self.apply_selected_preset).grid(row=0, column=2, sticky="w")
+        ttk.Button(preset_bar, text="Vorlagen verwalten", style="Ghost.TButton", command=self.open_preset_manager).grid(row=0, column=3, padx=(8, 0), sticky="e")
 
-        # Input fields
-        fields_frame = ttk.Frame(main_frame)
-        fields_frame.pack(fill=tk.X, pady=(0, 12))
+        fields_frame = ttk.Frame(form_card, style="Card.TFrame")
+        fields_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
+        fields_frame.grid_columnconfigure(0, weight=1)
+        fields_frame.grid_columnconfigure(1, weight=1)
 
-        self.psp_combo = self._build_combobox(fields_frame, "PSP (optional):", self.psp_var)
-        self.type_combo = self._build_combobox(fields_frame, "Leistungsart:", self.type_var)
+        self.psp_combo = self._build_combobox(fields_frame, "PSP (optional):", self.psp_var, column=0)
+        self.type_combo = self._build_combobox(fields_frame, "Leistungsart:", self.type_var, column=1)
 
-        self.time_frame = ttk.Frame(fields_frame)
-        self.time_frame.pack(side=tk.LEFT, padx=(0, 8), fill=tk.X, expand=True)
+        self.time_frame = ttk.Frame(form_card, style="Card.TFrame")
+        self.time_frame.grid(row=5, column=0, sticky="ew")
         self.time_frame.grid_columnconfigure(0, weight=1)
 
-        self.range_frame = ttk.Frame(self.time_frame)
+        self.range_frame = ttk.Frame(self.time_frame, style="Card.TFrame")
         self.range_frame.grid(row=0, column=0, sticky="w")
-        ttk.Label(self.range_frame, text="Start:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(self.range_frame, text="Start:", style="Card.TLabel").grid(row=0, column=0, sticky=tk.W)
         self.start_combo = self._build_time_entry(self.range_frame, self.start_var, row=1, column=0)
 
-        ttk.Label(self.range_frame, text="Ende:").grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
+        ttk.Label(self.range_frame, text="Ende:", style="Card.TLabel").grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
         self.end_combo = self._build_time_entry(self.range_frame, self.end_var, row=1, column=1, pad_x=8)
 
-        self.duration_frame = ttk.Frame(self.time_frame)
-        ttk.Label(self.duration_frame, text="Stunden:").grid(row=0, column=0, sticky=tk.W)
-        self.hours_entry = ttk.Entry(self.duration_frame, width=10, textvariable=self.hours_var)
-        self.hours_entry.grid(row=1, column=0, padx=(0, 8))
+        self.duration_frame = ttk.Frame(self.time_frame, style="Card.TFrame")
+        ttk.Label(self.duration_frame, text="Stunden:", style="Card.TLabel").grid(row=0, column=0, sticky=tk.W)
+        self.hours_entry = ttk.Entry(self.duration_frame, width=12, textvariable=self.hours_var)
+        self.hours_entry.grid(row=1, column=0, padx=(0, 12))
 
-        self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", command=self.toggle_time_mode)
+        self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", style="Ghost.TButton", command=self.toggle_time_mode)
         self.mode_btn.grid(row=0, column=1, rowspan=2, padx=(10, 0), sticky="e")
 
-        desc_frame = ttk.Frame(main_frame)
-        desc_frame.pack(fill=tk.X, pady=(0, 12))
-        ttk.Label(desc_frame, text="Kurzbeschreibung:").pack(anchor=tk.W)
+        desc_frame = ttk.Frame(form_card, style="Card.TFrame")
+        desc_frame.grid(row=6, column=0, sticky="ew", pady=(12, 4))
+        ttk.Label(desc_frame, text="Kurzbeschreibung:", style="Card.TLabel").grid(row=0, column=0, sticky="w")
         self.desc_combo = ttk.Combobox(desc_frame, textvariable=self.desc_var)
-        self.desc_combo.pack(fill=tk.X)
+        self.desc_combo.grid(row=1, column=0, sticky="ew")
 
-        # Buttons and total hours
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(fill=tk.X, pady=(0, 12))
+        btn_frame = ttk.Frame(form_card, style="Card.TFrame")
+        btn_frame.grid(row=7, column=0, sticky="ew", pady=(12, 0))
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
+        btn_frame.grid_columnconfigure(2, weight=1)
+        btn_frame.grid_columnconfigure(3, weight=1)
 
-        self.add_btn = ttk.Button(btn_frame, text="Eintrag hinzufügen", command=self.add_entry)
-        self.add_btn.pack(side=tk.LEFT)
+        self.add_btn = ttk.Button(btn_frame, text="Eintrag hinzufügen", style="Accent.TButton", command=self.add_entry)
+        self.add_btn.grid(row=0, column=0, sticky="ew")
 
-        self.update_btn = ttk.Button(btn_frame, text="Eintrag aktualisieren", command=self.update_entry)
-        self.update_btn.pack(side=tk.LEFT, padx=(6, 0))
-        self.update_btn.pack_forget()
+        self.update_btn = ttk.Button(btn_frame, text="Eintrag aktualisieren", style="Accent.TButton", command=self.update_entry)
+        self.update_btn.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+        self.update_btn.grid_remove()
 
-        ttk.Button(btn_frame, text="Felder leeren", command=self.reset_form).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(btn_frame, text="Löschen", command=self.delete_entry).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(btn_frame, text="Felder leeren", style="Ghost.TButton", command=self.reset_form).grid(row=0, column=2, sticky="ew", padx=(8, 0))
+        ttk.Button(btn_frame, text="Löschen", style="Ghost.TButton", command=self.delete_entry).grid(row=0, column=3, sticky="ew", padx=(8, 0))
 
-        self.total_var = tk.StringVar(value="Summe: 0.00 h")
-        ttk.Label(btn_frame, textvariable=self.total_var, font=("Arial", 12, "bold")).pack(side=tk.RIGHT)
+        list_card = self._card(main_frame)
+        list_card.grid(row=0, column=1, sticky="nsew")
+        list_card.grid_columnconfigure(0, weight=1)
+        list_card.grid_rowconfigure(2, weight=1)
 
-        # Entries list
-        tree_frame = ttk.Frame(main_frame)
-        tree_frame.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(list_card, text="Übersicht", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(list_card, text="Gruppierte Einträge und Summen.", style="Subtle.TLabel").grid(row=1, column=0, sticky="w", pady=(2, 10))
+
+        tree_frame = ttk.Frame(list_card, style="Card.TFrame")
+        tree_frame.grid(row=2, column=0, sticky="nsew")
+        tree_frame.grid_columnconfigure(0, weight=1)
+        tree_frame.grid_rowconfigure(0, weight=1)
 
         columns = ("psp", "type", "desc", "start", "end", "hours")
         self.tree = ttk.Treeview(
             tree_frame,
             columns=columns,
             show="tree headings",
-            height=12,
+            height=14,
         )
         self.tree.heading("#0", text="")
-        self.tree.column("#0", width=26, anchor=tk.W, minwidth=26, stretch=False)
+        self.tree.column("#0", width=24, anchor=tk.W, minwidth=24, stretch=False)
 
         headings = {
             "psp": "PSP",
@@ -576,12 +680,12 @@ class TimeTrackerApp(tk.Tk):
         }
         for col, title in headings.items():
             self.tree.heading(col, text=title)
-            width = 140
+            width = 150
             if col == "hours":
                 width = 110
             elif col == "desc":
-                width = 200
-            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=80)
+                width = 220
+            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=90)
 
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
@@ -590,8 +694,15 @@ class TimeTrackerApp(tk.Tk):
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
-        tree_frame.columnconfigure(0, weight=1)
-        tree_frame.rowconfigure(0, weight=1)
+
+        totals_frame = ttk.Frame(list_card, style="Card.TFrame")
+        totals_frame.grid(row=3, column=0, sticky="ew", pady=(12, 0))
+        totals_frame.grid_columnconfigure(1, weight=1)
+
+        self.total_var = tk.StringVar(value="Summe: 0.00 h")
+        ttk.Label(totals_frame, textvariable=self.total_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, sticky="w")
+
+        self.tree.tag_configure("group", background=self._colors["card_alt"], foreground="#ffffff", font=("Segoe UI", 10, "bold"))
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
         self.tree.bind("<Control-c>", self.copy_selection)
@@ -601,12 +712,16 @@ class TimeTrackerApp(tk.Tk):
         self.desc_combo["values"] = []
         self._apply_time_mode()
 
-    def _build_combobox(self, parent, label, variable):
-        frame = ttk.Frame(parent)
-        frame.pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Label(frame, text=label).pack(anchor=tk.W)
-        combo = ttk.Combobox(frame, textvariable=variable, width=18)
-        combo.pack()
+    def _build_combobox(self, parent, label, variable, column=None):
+        frame = ttk.Frame(parent, style="Card.TFrame")
+        if column is None:
+            frame.pack(side=tk.LEFT, padx=(0, 8))
+        else:
+            frame.grid(row=0, column=column, sticky="ew", padx=(0, 10))
+            frame.grid_columnconfigure(0, weight=1)
+        ttk.Label(frame, text=label, style="Card.TLabel").grid(row=0, column=0, sticky="w")
+        combo = ttk.Combobox(frame, textvariable=variable, width=20)
+        combo.grid(row=1, column=0, sticky="ew", pady=(4, 0))
         return combo
 
     def _build_time_entry(self, parent, variable, row=0, column=0, pad_x=0):
@@ -1024,10 +1139,10 @@ class TimeTrackerApp(tk.Tk):
     def _toggle_update_button(self, show):
         if show:
             if not self.update_btn.winfo_ismapped():
-                self.update_btn.pack(side=tk.LEFT, padx=(6, 0))
+                self.update_btn.grid()
         else:
             if self.update_btn.winfo_ismapped():
-                self.update_btn.pack_forget()
+                self.update_btn.grid_remove()
 
     def toggle_time_mode(self):
         new_mode = "duration" if self.time_mode.get() == "range" else "range"
