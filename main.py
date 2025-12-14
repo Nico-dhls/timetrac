@@ -403,8 +403,8 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("1400x820")
-        self.minsize(1320, 780)
+        self.geometry("1500x880")
+        self.minsize(1380, 820)
         self.configure(bg="#0f1629")
         self.resizable(True, True)
 
@@ -753,8 +753,8 @@ class TimeTrackerApp(tk.Tk):
     def build_ui(self):
         main_frame = tk.Frame(self, bg=self._colors["base"])
         main_frame.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
-        main_frame.grid_columnconfigure(0, weight=12, uniform="cards")
-        main_frame.grid_columnconfigure(1, weight=14, uniform="cards")
+        main_frame.grid_columnconfigure(0, weight=11, uniform="cards")
+        main_frame.grid_columnconfigure(1, weight=17, uniform="cards")
 
         form_card = self._card(main_frame)
         form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
@@ -933,16 +933,17 @@ class TimeTrackerApp(tk.Tk):
         }
         for col, title in headings.items():
             self.tree.heading(col, text=title)
-            width = 180
-            minwidth = 120
+            width = 200
+            minwidth = 150
             if col == "hours":
-                width = 150
-                minwidth = 140
+                width = 180
+                minwidth = 160
             elif col in {"start", "end"}:
-                width = 140
+                width = 150
+                minwidth = 130
             elif col == "desc":
-                width = 300
-                minwidth = 180
+                width = 320
+                minwidth = 200
             self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=minwidth, stretch=True)
 
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
@@ -955,10 +956,14 @@ class TimeTrackerApp(tk.Tk):
 
         totals_frame = ttk.Frame(list_card, style="Card.TFrame")
         totals_frame.grid(row=3, column=0, sticky="ew", pady=(12, 0))
+        totals_frame.grid_columnconfigure(0, weight=1)
         totals_frame.grid_columnconfigure(1, weight=1)
 
-        self.total_var = tk.StringVar(value="Summe: 0.00 h")
+        self.total_var = tk.StringVar(value="Summe Tag: 0.00 h")
         ttk.Label(totals_frame, textvariable=self.total_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, sticky="w")
+
+        self.week_total_var = tk.StringVar(value="Woche: 0.00 h")
+        ttk.Label(totals_frame, textvariable=self.week_total_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=1, sticky="e")
 
         self.tree.tag_configure("group", background=self._colors["card_alt"], foreground="#ffffff", font=("Segoe UI", 10, "bold"))
 
@@ -1239,7 +1244,10 @@ class TimeTrackerApp(tk.Tk):
                     ),
                 )
         self._auto_size_columns()
-        self.total_var.set(f"Summe: {total_hours:.2f} h")
+        self.total_var.set(f"Summe Tag: {total_hours:.2f} h")
+
+        week_hours = self._calculate_week_hours(day_key)
+        self.week_total_var.set(f"Woche: {week_hours:.2f} h")
 
     def on_select_entry(self, event):
         selection = self.tree.selection()
@@ -1357,7 +1365,7 @@ class TimeTrackerApp(tk.Tk):
             "Sonntag",
         ]
         weekday = weekday_names[day_date.weekday()]
-        formatted = day_date.strftime("%d.%m")
+        formatted = day_date.strftime("%d.%m.%Y")
         self.day_display_var.set(f"{weekday} {formatted}")
 
     def _auto_size_columns(self):
@@ -1381,22 +1389,45 @@ class TimeTrackerApp(tk.Tk):
             ltype = entry.get("type", "")
             desc = entry.get("desc", "")
             key = (psp, ltype, desc)
-            hours_raw = entry.get("hours")
-            if hours_raw is None:
-                try:
-                    hours = calculate_hours(entry.get("start", ""), entry.get("end", ""))
-                except Exception:
-                    hours = 0
-            else:
-                try:
-                    hours = float(hours_raw)
-                except Exception:
-                    hours = 0
+            hours = self._entry_hours(entry)
             if key not in groups:
                 groups[key] = []
             groups[key].append((idx, entry, hours))
 
         return list(groups.items())
+
+    def _entry_hours(self, entry):
+        hours_raw = entry.get("hours")
+        if hours_raw is None:
+            try:
+                return calculate_hours(entry.get("start", ""), entry.get("end", ""))
+            except Exception:
+                return 0
+        try:
+            return float(hours_raw)
+        except Exception:
+            return 0
+
+    def _calculate_week_hours(self, day_key):
+        try:
+            current_day = datetime.strptime(day_key, DATE_FORMAT).date()
+        except ValueError:
+            return 0.0
+
+        start_of_week = current_day - timedelta(days=current_day.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+
+        total = 0.0
+        for entry_day, entry_list in self.entries.items():
+            try:
+                entry_date = datetime.strptime(entry_day, DATE_FORMAT).date()
+            except ValueError:
+                continue
+            if not (start_of_week <= entry_date <= end_of_week):
+                continue
+            for entry in entry_list:
+                total += self._entry_hours(entry)
+        return total
 
     def _toggle_update_button(self, show):
         if show:
