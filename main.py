@@ -265,12 +265,14 @@ class PresetManager(tk.Toplevel):
         btn_frame = ttk.Frame(self)
         btn_frame.pack(fill=tk.X, pady=(8, 0))
 
-        ttk.Button(btn_frame, text="Hinzufügen/Aktualisieren", command=self.add_or_update).pack(side=tk.LEFT)
+        ttk.Button(btn_frame, text="Hinzufügen", command=self.add_preset).pack(side=tk.LEFT)
+        self.update_btn = ttk.Button(btn_frame, text="Aktualisieren", command=self.update_selected)
         ttk.Button(btn_frame, text="Entfernen", command=self.remove_selected).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(btn_frame, text="Schließen", command=self.save_and_close).pack(side=tk.RIGHT)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.refresh_list()
+        self._update_update_button_visibility()
 
     def refresh_list(self):
         for item in self.tree.get_children():
@@ -290,13 +292,30 @@ class PresetManager(tk.Toplevel):
     def on_select(self, event=None):
         idx = self._selected_index()
         if idx is None or idx >= len(self.presets):
+            self._update_update_button_visibility()
             return
         preset = self.presets[idx]
         self.name_var.set(preset.get("name", ""))
         self.psp_var.set(preset.get("psp", ""))
         self.type_var.set(preset.get("type", ""))
+        self._update_update_button_visibility()
 
-    def add_or_update(self):
+    def add_preset(self):
+        name = self.name_var.get().strip()
+        psp = self.psp_var.get().strip()
+        ltype = self.type_var.get().strip()
+        if not name:
+            messagebox.showerror("Vorlage", "Bitte gib einen Namen für die Vorlage an.")
+            return
+        if not psp and not ltype:
+            messagebox.showerror("Vorlage", "Mindestens PSP oder Leistungsart müssen gesetzt sein.")
+            return
+        self.presets.append({"name": name, "psp": psp, "type": ltype})
+        self.refresh_list()
+        self.tree.selection_remove(self.tree.selection())
+        self._update_update_button_visibility()
+
+    def update_selected(self):
         name = self.name_var.get().strip()
         psp = self.psp_var.get().strip()
         ltype = self.type_var.get().strip()
@@ -307,14 +326,22 @@ class PresetManager(tk.Toplevel):
             messagebox.showerror("Vorlage", "Mindestens PSP oder Leistungsart müssen gesetzt sein.")
             return
         idx = self._selected_index()
-        new_preset = {"name": name, "psp": psp, "type": ltype}
         if idx is None or idx >= len(self.presets):
-            self.presets.append(new_preset)
-        else:
-            self.presets[idx] = new_preset
+            messagebox.showerror("Vorlage", "Bitte wähle eine Vorlage zum Aktualisieren aus.")
+            self._update_update_button_visibility()
+            return
+        self.presets[idx] = {"name": name, "psp": psp, "type": ltype}
         self.refresh_list()
-        if idx is not None and idx < len(self.presets):
-            self.tree.selection_set(str(idx))
+        self.tree.selection_set(str(idx))
+        self._update_update_button_visibility()
+
+    def _update_update_button_visibility(self):
+        if self._selected_index() is None:
+            if self.update_btn.winfo_manager():
+                self.update_btn.pack_forget()
+            return
+        if not self.update_btn.winfo_manager():
+            self.update_btn.pack(side=tk.LEFT, padx=(6, 0))
 
     def remove_selected(self):
         idx = self._selected_index()
@@ -325,6 +352,7 @@ class PresetManager(tk.Toplevel):
         self.name_var.set("")
         self.psp_var.set("")
         self.type_var.set("")
+        self._update_update_button_visibility()
 
     def save_and_close(self):
         self.on_save(self.presets)
