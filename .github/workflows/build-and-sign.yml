@@ -1,4 +1,6 @@
 name: Build, Sign & Release EXE
+permissions:
+  contents: write
 
 on:
   push:
@@ -83,9 +85,12 @@ jobs:
             Out-File "timetrac.zip.sha256" -Encoding ASCII
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             timetrac.zip
             timetrac.zip.sha256
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
