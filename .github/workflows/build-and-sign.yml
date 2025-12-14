@@ -5,7 +5,6 @@ on:
     tags:
       - "v*"
 
-# WICHTIG: Setzt die Berechtigungen für den GITHUB_TOKEN
 permissions:
   contents: write
 
@@ -29,10 +28,66 @@ jobs:
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
 
+      # NEU: Erstellt die version_info.txt dynamisch aus dem Git-Tag
+      - name: Generate Version Info
+        shell: python
+        run: |
+          import os
+          
+          # Tag holen (z.B. "v1.5.0") und "v" entfernen -> "1.5.0"
+          tag = os.environ.get("GITHUB_REF_NAME", "0.0.0").lstrip("v")
+          
+          # Version für Windows-Tuple splitten (1, 5, 0, 0)
+          parts = [p for p in tag.split(".") if p.isdigit()]
+          # Mit Nullen auffüllen bis 4 Stellen (Windows Standard)
+          while len(parts) < 4:
+              parts.append("0")
+          
+          version_tuple = f"({', '.join(parts)})"
+          version_str = tag
+          
+          file_content = f"""
+          # UTF-8
+          VSVersionInfo(
+            ffi=FixedFileInfo(
+              filevers={version_tuple},
+              prodvers={version_tuple},
+              mask=0x3f,
+              flags=0x0,
+              OS=0x40004,
+              fileType=0x1,
+              subtype=0x0,
+              date=(0,0)
+            ),
+            kids=[
+              StringFileInfo([
+                StringTable(
+                  "040904B0",
+                  [
+                    StringStruct("CompanyName", "Nico Dahlhaus"),
+                    StringStruct("ProductName", "TimeTrac"),
+                    StringStruct("FileDescription", "TimeTrac – Zeiterfassung"),
+                    StringStruct("ProductVersion", "{version_str}"),
+                    StringStruct("FileVersion", "{version_str}"),
+                    StringStruct("OriginalFilename", "timetrac.exe"),
+                    StringStruct("LegalCopyright", "© 2025 – Developed by Nico Dahlhaus")
+                  ]
+                )
+              ]),
+              VarFileInfo([VarStruct("Translation", [1033, 1200])])
+            ]
+          )
+          """
+          
+          with open("version_info.txt", "w", encoding="utf-8") as f:
+              f.write(file_content)
+          
+          print(f"version_info.txt created for version {version_str}")
+
       - name: Build EXE (PyInstaller)
         shell: pwsh
         run: |
-          # Stellen Sie sicher, dass Icon und Version-File existieren, sonst entfernen Sie die Zeilen
+          # Hinweis: version_info.txt wurde im vorherigen Schritt erstellt
           pyinstaller `
             --onefile `
             --noconsole `
@@ -42,28 +97,21 @@ jobs:
             ".\main.py"
 
       - name: Decode PFX Certificate
-        id: write_file
         shell: pwsh
         run: |
           $pfxPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath "codesign.pfx"
           $encodedBytes = [Convert]::FromBase64String("${{ secrets.CODESIGN_PFX_BASE64 }}")
           [IO.File]::WriteAllBytes($pfxPath, $encodedBytes)
-          
-          # Sicherer Weg, ENV Var zu setzen
           "PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
 
       - name: Find signtool.exe
         shell: pwsh
         run: |
-          # Sucht dynamisch nach dem neuesten Signtool im Windows SDK
           $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
             Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
             Sort-Object FullName -Descending |
             Select-Object -First 1 -ExpandProperty FullName
-          
           if (-not $signtool) { throw "signtool.exe nicht gefunden" }
-          
-          Write-Host "Signtool gefunden: $signtool"
           "SIGNTOOL=$signtool" >> $env:GITHUB_ENV
 
       - name: Sign EXE
@@ -80,12 +128,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path ".\release" | Out-Null
-          
-          # Prüfen ob Dateien existieren, um Fehler zu vermeiden
           if (Test-Path ".\dist\timetrac.exe") { Copy-Item ".\dist\timetrac.exe" ".\release\timetrac.exe" -Force }
           if (Test-Path ".\LICENSE") { Copy-Item ".\LICENSE" ".\release\LICENSE" -Force }
           
-          # Zip erstellen
           $compressFiles = @(".\release\timetrac.exe")
           if (Test-Path ".\release\LICENSE") { $compressFiles += ".\release\LICENSE" }
           
@@ -108,5 +153,3 @@ jobs:
             timetrac.zip
             timetrac.zip.sha256
           generate_release_notes: true
-          draft: false
-          prerelease: false
