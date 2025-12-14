@@ -6,6 +6,46 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import tkinter.font as tkfont
 
+
+class Tooltip:
+    def __init__(self, widget, text, bg="#0f1629", fg="#e6e8ef"):
+        self.widget = widget
+        self.text = text
+        self.bg = bg
+        self.fg = fg
+        self.tipwindow = None
+        widget.bind("<Enter>", self.show_tip)
+        widget.bind("<Leave>", self.hide_tip)
+
+    def show_tip(self, _event=None):
+        if self.tipwindow or not self.text:
+            return
+        x, y, cx, cy = self.widget.bbox("insert") or (0, 0, 0, 0)
+        x = x + self.widget.winfo_rootx() + 10
+        y = y + cy + self.widget.winfo_rooty() + 10
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.configure(bg=self.bg)
+        label = tk.Label(
+            tw,
+            text=self.text,
+            justify=tk.LEFT,
+            background=self.bg,
+            foreground=self.fg,
+            relief=tk.SOLID,
+            borderwidth=1,
+            padx=8,
+            pady=6,
+            font=("Segoe UI", 9),
+        )
+        label.pack()
+        tw.wm_geometry(f"+{x}+{y}")
+
+    def hide_tip(self, _event=None):
+        if self.tipwindow:
+            self.tipwindow.destroy()
+            self.tipwindow = None
+
 DATA_FILE = Path("time_entries.json")
 ICON_FILE = Path(__file__).resolve().parent / "timetable_icon.ico"
 DATE_FORMAT = "%Y-%m-%d"
@@ -390,6 +430,25 @@ class TimeTrackerApp(tk.Tk):
         self.build_ui()
         self.refresh_entry_list()
 
+    def _rounded_rect_image(self, fill, bg, radius=10):
+        size = radius * 2 + 6
+        img = tk.PhotoImage(width=size, height=size)
+        img.put(bg, to=(0, 0, size, size))
+        for x in range(size):
+            for y in range(size):
+                dx = min(x, size - x - 1)
+                dy = min(y, size - y - 1)
+                # inside straight edges
+                if dx >= radius or dy >= radius:
+                    img.put(fill, (x, y))
+                    continue
+                # inside rounded corners
+                cx = radius - dx - 0.5
+                cy = radius - dy - 0.5
+                if cx * cx + cy * cy <= radius * radius:
+                    img.put(fill, (x, y))
+        return img
+
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
@@ -414,6 +473,7 @@ class TimeTrackerApp(tk.Tk):
             "border": border,
             "card_alt": card_alt,
         }
+        self._img_refs = []
         self.option_add("*Font", ("Segoe UI", 11))
         self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 11))
         self.option_add("*TCombobox*Listbox.background", field_bg)
@@ -483,6 +543,140 @@ class TimeTrackerApp(tk.Tk):
             "Accent.TButton",
             background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
+        )
+        toolbar_normal = self._rounded_rect_image("#304878", card_bg, radius=9)
+        toolbar_hover = self._rounded_rect_image("#3d5d9b", card_bg, radius=9)
+        accent_img = self._rounded_rect_image(accent, card_bg, radius=10)
+        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=10)
+        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=10)
+        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=10)
+        self._img_refs.extend(
+            [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
+        )
+        style.element_create(
+            "ToolbarRounded.border",
+            "image",
+            toolbar_normal,
+            ("active", toolbar_hover),
+            ("pressed", toolbar_hover),
+            border=10,
+            sticky="nswe",
+        )
+        style.layout(
+            "ToolbarRounded.TButton",
+            [
+                (
+                    "ToolbarRounded.border",
+                    {
+                        "children": [
+                            (
+                                "Button.padding",
+                                {
+                                    "children": [
+                                        (
+                                            "Button.label",
+                                            {"sticky": "nswe"},
+                                        )
+                                    ],
+                                    "sticky": "nswe",
+                                },
+                            )
+                        ],
+                        "sticky": "nswe",
+                    },
+                )
+            ],
+        )
+        style.configure(
+            "ToolbarRounded.TButton",
+            foreground=fg,
+            padding=10,
+            background="#304878",
+            borderwidth=0,
+        )
+        style.element_create(
+            "AccentRounded.border",
+            "image",
+            accent_img,
+            ("active", accent_hover),
+            ("pressed", accent_hover),
+            border=10,
+            sticky="nswe",
+        )
+        style.layout(
+            "AccentRounded.TButton",
+            [
+                (
+                    "AccentRounded.border",
+                    {
+                        "children": [
+                            (
+                                "Button.padding",
+                                {
+                                    "children": [
+                                        (
+                                            "Button.label",
+                                            {"sticky": "nswe"},
+                                        )
+                                    ],
+                                    "sticky": "nswe",
+                                },
+                            )
+                        ],
+                        "sticky": "nswe",
+                    },
+                )
+            ],
+        )
+        style.configure(
+            "AccentRounded.TButton",
+            foreground="#ffffff",
+            padding=12,
+            background=accent,
+            borderwidth=0,
+            font=("Segoe UI", 11, "bold"),
+        )
+        style.element_create(
+            "DangerRounded.border",
+            "image",
+            danger_img,
+            ("active", danger_hover),
+            ("pressed", danger_hover),
+            border=10,
+            sticky="nswe",
+        )
+        style.layout(
+            "DangerRounded.TButton",
+            [
+                (
+                    "DangerRounded.border",
+                    {
+                        "children": [
+                            (
+                                "Button.padding",
+                                {
+                                    "children": [
+                                        (
+                                            "Button.label",
+                                            {"sticky": "nswe"},
+                                        )
+                                    ],
+                                    "sticky": "nswe",
+                                },
+                            )
+                        ],
+                        "sticky": "nswe",
+                    },
+                )
+            ],
+        )
+        style.configure(
+            "DangerRounded.TButton",
+            foreground="#ffffff",
+            padding=10,
+            background="#d14b64",
+            borderwidth=0,
+            font=("Segoe UI", 11, "bold"),
         )
         style.configure(
             "TEntry",
@@ -575,34 +769,64 @@ class TimeTrackerApp(tk.Tk):
         date_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         date_frame.grid_columnconfigure(4, weight=1)
 
-        ttk.Label(date_frame, text="Datum:", style="Card.TLabel").grid(row=0, column=0, sticky="w")
+        date_label = ttk.Label(date_frame, text="Datum:", style="Card.TLabel")
+        date_label.grid(row=0, column=0, sticky="w")
         date_entry = ttk.Entry(date_frame, width=12, textvariable=self.date_var)
         date_entry.grid(row=0, column=1, padx=(8, 10))
 
-        ttk.Button(date_frame, text="Kalender", style="Ghost.TButton", command=self.open_calendar).grid(row=0, column=2, padx=(0, 8))
-        ttk.Button(date_frame, text="Heute", style="Ghost.TButton", command=self.set_today).grid(row=0, column=3, padx=(0, 8))
-        ttk.Button(date_frame, text="Gestern", style="Ghost.TButton", command=self.set_yesterday).grid(row=0, column=4, sticky="w")
+        ttk.Button(date_frame, text="Kalender", style="ToolbarRounded.TButton", command=self.open_calendar).grid(row=0, column=2, padx=(0, 8))
+        ttk.Button(date_frame, text="Heute", style="ToolbarRounded.TButton", command=self.set_today).grid(row=0, column=3, padx=(0, 8))
+        ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=4, sticky="w")
 
         self.day_display_var = tk.StringVar()
         ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=5, sticky="e", padx=(10, 0))
+        date_info = ttk.Label(date_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
+        date_info.grid(row=0, column=6, padx=(10, 0))
+        Tooltip(
+            date_info,
+            "Schnell auf heute/gestern springen oder einen Tag über den Kalender auswählen.",
+            bg=self._colors["card"],
+            fg=self._colors["muted"],
+        )
 
         preset_bar = ttk.Frame(form_card, style="Card.TFrame")
         preset_bar.grid(row=3, column=0, sticky="ew", pady=(0, 12))
         preset_bar.grid_columnconfigure(2, weight=1)
-        ttk.Label(preset_bar, text="Vorlage:", style="Card.TLabel").grid(row=0, column=0, sticky="w")
+        preset_label = ttk.Label(preset_bar, text="Vorlage:", style="Card.TLabel")
+        preset_label.grid(row=0, column=0, sticky="w")
         self.preset_combo = ttk.Combobox(preset_bar, textvariable=self.preset_var, width=22, state="readonly")
         self.preset_combo.grid(row=0, column=1, padx=(8, 8))
         self.preset_combo.bind("<<ComboboxSelected>>", lambda _evt: self.apply_selected_preset())
-        ttk.Button(preset_bar, text="Anwenden", style="Ghost.TButton", command=self.apply_selected_preset).grid(row=0, column=2, sticky="w")
-        ttk.Button(preset_bar, text="Vorlagen verwalten", style="Ghost.TButton", command=self.open_preset_manager).grid(row=0, column=3, padx=(8, 0), sticky="e")
+        ttk.Button(preset_bar, text="Anwenden", style="AccentRounded.TButton", command=self.apply_selected_preset).grid(row=0, column=2, sticky="w")
+        ttk.Button(preset_bar, text="Vorlagen verwalten", style="ToolbarRounded.TButton", command=self.open_preset_manager).grid(row=0, column=3, padx=(8, 0), sticky="e")
+        preset_info = ttk.Label(preset_bar, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
+        preset_info.grid(row=0, column=4, padx=(8, 0))
+        Tooltip(
+            preset_info,
+            "Vorlagen füllen PSP und Leistungsart automatisch aus.",
+            bg=self._colors["card"],
+            fg=self._colors["muted"],
+        )
 
         fields_frame = ttk.Frame(form_card, style="Card.TFrame")
         fields_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
         fields_frame.grid_columnconfigure(0, weight=1)
         fields_frame.grid_columnconfigure(1, weight=1)
 
-        self.psp_combo = self._build_combobox(fields_frame, "PSP (optional):", self.psp_var, column=0)
-        self.type_combo = self._build_combobox(fields_frame, "Leistungsart:", self.type_var, column=1)
+        self.psp_combo = self._build_combobox(
+            fields_frame,
+            "PSP (optional):",
+            self.psp_var,
+            column=0,
+            tooltip_text="Optionaler PSP-Code, um deine Buchung schneller zuzuordnen.",
+        )
+        self.type_combo = self._build_combobox(
+            fields_frame,
+            "Leistungsart:",
+            self.type_var,
+            column=1,
+            tooltip_text="Pflichtfeld für den abrechnungsrelevanten Leistungs-Typ.",
+        )
 
         self.time_frame = ttk.Frame(form_card, style="Card.TFrame")
         self.time_frame.grid(row=5, column=0, sticky="ew")
@@ -610,23 +834,51 @@ class TimeTrackerApp(tk.Tk):
 
         self.range_frame = ttk.Frame(self.time_frame, style="Card.TFrame")
         self.range_frame.grid(row=0, column=0, sticky="w")
-        ttk.Label(self.range_frame, text="Start:", style="Card.TLabel").grid(row=0, column=0, sticky=tk.W)
+        start_label = ttk.Label(self.range_frame, text="Start:", style="Card.TLabel")
+        start_label.grid(row=0, column=0, sticky=tk.W)
         self.start_combo = self._build_time_entry(self.range_frame, self.start_var, row=1, column=0)
 
-        ttk.Label(self.range_frame, text="Ende:", style="Card.TLabel").grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
+        end_label = ttk.Label(self.range_frame, text="Ende:", style="Card.TLabel")
+        end_label.grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
         self.end_combo = self._build_time_entry(self.range_frame, self.end_var, row=1, column=1, pad_x=8)
+        range_info = ttk.Label(self.range_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
+        range_info.grid(row=0, column=2, sticky="w", padx=(8, 0))
+        Tooltip(
+            range_info,
+            "Nutze Start/Ende für klassische Zeitspannen. Prüft automatisch, dass Ende nach Start liegt.",
+            bg=self._colors["card"],
+            fg=self._colors["muted"],
+        )
 
         self.duration_frame = ttk.Frame(self.time_frame, style="Card.TFrame")
-        ttk.Label(self.duration_frame, text="Stunden:", style="Card.TLabel").grid(row=0, column=0, sticky=tk.W)
+        hours_label = ttk.Label(self.duration_frame, text="Stunden:", style="Card.TLabel")
+        hours_label.grid(row=0, column=0, sticky=tk.W)
         self.hours_entry = ttk.Entry(self.duration_frame, width=12, textvariable=self.hours_var)
         self.hours_entry.grid(row=1, column=0, padx=(0, 12))
+        hours_info = ttk.Label(self.duration_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
+        hours_info.grid(row=0, column=1, sticky="w", padx=(6, 0))
+        Tooltip(
+            hours_info,
+            "Trage hier direkt Stunden ein, wenn du keine Start/Ende Zeiten verwenden willst.",
+            bg=self._colors["card"],
+            fg=self._colors["muted"],
+        )
 
-        self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", style="Ghost.TButton", command=self.toggle_time_mode)
+        self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", style="ToolbarRounded.TButton", command=self.toggle_time_mode)
         self.mode_btn.grid(row=0, column=1, rowspan=2, padx=(10, 0), sticky="e")
 
         desc_frame = ttk.Frame(form_card, style="Card.TFrame")
         desc_frame.grid(row=6, column=0, sticky="ew", pady=(12, 4))
-        ttk.Label(desc_frame, text="Kurzbeschreibung:", style="Card.TLabel").grid(row=0, column=0, sticky="w")
+        desc_label = ttk.Label(desc_frame, text="Kurzbeschreibung:", style="Card.TLabel")
+        desc_label.grid(row=0, column=0, sticky="w")
+        desc_info = ttk.Label(desc_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
+        desc_info.grid(row=0, column=1, sticky="w", padx=(6, 0))
+        Tooltip(
+            desc_info,
+            "Kurzer Text für die gebuchte Tätigkeit. Häufige Einträge tauchen als Vorschlag auf.",
+            bg=self._colors["card"],
+            fg=self._colors["muted"],
+        )
         self.desc_combo = ttk.Combobox(desc_frame, textvariable=self.desc_var)
         self.desc_combo.grid(row=1, column=0, sticky="ew")
 
@@ -637,15 +889,15 @@ class TimeTrackerApp(tk.Tk):
         btn_frame.grid_columnconfigure(2, weight=1)
         btn_frame.grid_columnconfigure(3, weight=1)
 
-        self.add_btn = ttk.Button(btn_frame, text="Eintrag hinzufügen", style="Accent.TButton", command=self.add_entry)
+        self.add_btn = ttk.Button(btn_frame, text="Eintrag hinzufügen", style="AccentRounded.TButton", command=self.add_entry)
         self.add_btn.grid(row=0, column=0, sticky="ew")
 
-        self.update_btn = ttk.Button(btn_frame, text="Eintrag aktualisieren", style="Accent.TButton", command=self.update_entry)
+        self.update_btn = ttk.Button(btn_frame, text="Eintrag aktualisieren", style="AccentRounded.TButton", command=self.update_entry)
         self.update_btn.grid(row=0, column=1, sticky="ew", padx=(8, 0))
         self.update_btn.grid_remove()
 
-        ttk.Button(btn_frame, text="Felder leeren", style="Ghost.TButton", command=self.reset_form).grid(row=0, column=2, sticky="ew", padx=(8, 0))
-        ttk.Button(btn_frame, text="Löschen", style="Ghost.TButton", command=self.delete_entry).grid(row=0, column=3, sticky="ew", padx=(8, 0))
+        ttk.Button(btn_frame, text="Felder leeren", style="ToolbarRounded.TButton", command=self.reset_form).grid(row=0, column=2, sticky="ew", padx=(8, 0))
+        ttk.Button(btn_frame, text="Löschen", style="DangerRounded.TButton", command=self.delete_entry).grid(row=0, column=3, sticky="ew", padx=(8, 0))
 
         list_card = self._card(main_frame)
         list_card.grid(row=0, column=1, sticky="nsew")
@@ -712,7 +964,7 @@ class TimeTrackerApp(tk.Tk):
         self.desc_combo["values"] = []
         self._apply_time_mode()
 
-    def _build_combobox(self, parent, label, variable, column=None):
+    def _build_combobox(self, parent, label, variable, column=None, tooltip_text=None):
         frame = ttk.Frame(parent, style="Card.TFrame")
         if column is None:
             frame.pack(side=tk.LEFT, padx=(0, 8))
@@ -720,6 +972,10 @@ class TimeTrackerApp(tk.Tk):
             frame.grid(row=0, column=column, sticky="ew", padx=(0, 10))
             frame.grid_columnconfigure(0, weight=1)
         ttk.Label(frame, text=label, style="Card.TLabel").grid(row=0, column=0, sticky="w")
+        if tooltip_text:
+            info = ttk.Label(frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
+            info.grid(row=0, column=1, sticky="w", padx=(6, 0))
+            Tooltip(info, tooltip_text, bg=self._colors["card"], fg=self._colors["muted"])
         combo = ttk.Combobox(frame, textvariable=variable, width=20)
         combo.grid(row=1, column=0, sticky="ew", pady=(4, 0))
         return combo
