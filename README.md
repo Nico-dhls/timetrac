@@ -1,6 +1,7 @@
 # TimeTrac
 
 [![Build and Sign EXE](https://github.com/Nico-dhls/timetrac/actions/workflows/build-and-sign.yml/badge.svg)](https://github.com/Nico-dhls/timetrac/actions/workflows/build-and-sign.yml)
+[![Python tests](https://github.com/Nico-dhls/timetrac/actions/workflows/tests.yml/badge.svg)](https://github.com/Nico-dhls/timetrac/actions/workflows/tests.yml)
 
 TimeTrac ist eine desktopbasierte Zeiterfassung mit moderner Tk-Oberfläche. Das Tool hilft dir, Tätigkeiten pro Tag zu protokollieren, Zeiten zu gruppieren und häufig genutzte Werte schneller auszuwählen.
 
@@ -46,4 +47,4 @@ pyinstaller --onefile --noconsole --name "timetrac" --icon "timetable_icon.ico" 
 Die gespeicherten Daten bestehen aus einem Wörterbuch mit den Schlüsseln `entries` und `presets`. Pro Tag (`YYYY-MM-DD`) wird eine Liste von Einträgen mit Feldern wie `psp`, `type`, `desc`, `start`, `end` oder `hours` abgelegt. TimeTrac berechnet Fehlzeiten automatisch und gruppiert die Sicht nach Projekten.
 
 ## Lizenz
-© 2025 – Developed by Nico Dahlhaus. Bitte prüfe ggf. eigene Lizenzanforderungen, bevor du das Programm verteilst.
+© 2025 – Developed by Nico Dahlhaus.
