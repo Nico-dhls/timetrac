@@ -17,8 +17,8 @@ VSVersionInfo(
           StringStruct("CompanyName", "Nico Dahlhaus"),
           StringStruct("ProductName", "TimeTrac"),
           StringStruct("FileDescription", "TimeTrac – Zeiterfassung"),
-          StringStruct("ProductVersion", "1.1.0"),
-          StringStruct("FileVersion", "1.0.0"),
+          StringStruct("ProductVersion", "1.5.0"),
+          StringStruct("FileVersion", "1.5.0"),
           StringStruct("OriginalFilename", "timetrac.exe"),
           StringStruct("LegalCopyright",
             "© 2025 – Developed by Nico Dahlhaus")
