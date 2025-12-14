@@ -432,6 +432,7 @@ class TimeTrackerApp(tk.Tk):
         self.entries = self.data["entries"]
         self.presets = self.data["presets"]
         self.editing_index = None
+        self._calendar_window = None
 
         self.date_var = tk.StringVar(value=date.today().strftime(DATE_FORMAT))
         self.preset_var = tk.StringVar()
@@ -531,7 +532,7 @@ class TimeTrackerApp(tk.Tk):
             "TButton",
             background=card_alt,
             foreground=fg,
-            padding=10,
+            padding=9,
             borderwidth=0,
         )
         style.map(
@@ -565,10 +566,10 @@ class TimeTrackerApp(tk.Tk):
         )
         toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=11)
         toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=11)
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=10)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=10)
-        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=10)
-        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=10)
+        accent_img = self._rounded_rect_image(accent, card_bg, radius=9)
+        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=9)
+        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=9)
+        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=9)
         self._img_refs.extend(
             [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
         )
@@ -609,10 +610,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "ToolbarRounded.TButton",
             foreground="#f4f6fb",
-            padding=12,
+            padding=9,
             background="#4b6fb0",
             borderwidth=0,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
         )
         style.element_create(
             "AccentRounded.border",
@@ -651,10 +652,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "AccentRounded.TButton",
             foreground="#ffffff",
-            padding=13,
+            padding=10,
             background=accent,
             borderwidth=0,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
         )
         style.element_create(
             "DangerRounded.border",
@@ -693,10 +694,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "DangerRounded.TButton",
             foreground="#ffffff",
-            padding=10,
+            padding=9,
             background="#d14b64",
             borderwidth=0,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
         )
         style.configure(
             "TEntry",
@@ -712,6 +713,20 @@ class TimeTrackerApp(tk.Tk):
             fieldbackground=[("focus", focus_bg)],
             bordercolor=[("focus", accent)],
             foreground=[("focus", fg)],
+        )
+        style.configure(
+            "Date.TEntry",
+            fieldbackground="#233354",
+            foreground=fg,
+            insertcolor=fg,
+            bordercolor="#4d82d9",
+            lightcolor="#4d82d9",
+            darkcolor=border,
+        )
+        style.map(
+            "Date.TEntry",
+            fieldbackground=[("focus", "#2b4670")],
+            bordercolor=[("focus", accent_active)],
         )
         style.configure(
             "TCombobox",
@@ -791,20 +806,26 @@ class TimeTrackerApp(tk.Tk):
 
         date_label = ttk.Label(date_frame, text="Datum:", style="Card.TLabel")
         date_label.grid(row=0, column=0, sticky="w")
-        date_entry = ttk.Entry(date_frame, width=12, textvariable=self.date_var)
-        date_entry.grid(row=0, column=1, padx=(8, 10), sticky="w")
+        date_entry = ttk.Entry(
+            date_frame,
+            width=14,
+            textvariable=self.date_var,
+            style="Date.TEntry",
+            font=("Segoe UI", 11, "bold"),
+        )
+        date_entry.grid(row=0, column=1, padx=(10, 12), sticky="ew")
+        date_entry.bind("<Button-1>", self.open_calendar)
 
-        ttk.Button(date_frame, text="Kalender", style="ToolbarRounded.TButton", command=self.open_calendar).grid(row=0, column=2, padx=(0, 8))
-        ttk.Button(date_frame, text="Heute", style="ToolbarRounded.TButton", command=self.set_today).grid(row=0, column=3, padx=(0, 8))
-        ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=4, padx=(0, 4))
+        ttk.Button(date_frame, text="Heute", style="ToolbarRounded.TButton", command=self.set_today).grid(row=0, column=2, padx=(0, 8))
+        ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=3, padx=(0, 4))
 
         self.day_display_var = tk.StringVar()
-        ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=1, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
         date_info = ttk.Label(date_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        date_info.grid(row=1, column=4, padx=(6, 0), sticky="w")
+        date_info.grid(row=1, column=3, padx=(8, 0), sticky="e")
         Tooltip(
             date_info,
-            "Schnell auf heute/gestern springen oder einen Tag über den Kalender auswählen.",
+            "Feld anklicken öffnet den Kalender – oder per Heute/Gestern springen.",
             bg=self._colors["card"],
             fg=self._colors["muted"],
         )
@@ -1045,9 +1066,24 @@ class TimeTrackerApp(tk.Tk):
         self.end_var.set(now_str)
         self.hours_var.set("")
 
-    def open_calendar(self):
+    def open_calendar(self, _event=None):
+        if self._calendar_window is not None and self._calendar_window.winfo_exists():
+            self._calendar_window.lift()
+            return
+        self._calendar_window = None
         current = self.current_date_value()
-        CalendarPicker(self, current, self.set_selected_date, self.icon_image)
+        picker = CalendarPicker(self, current, self.set_selected_date, self.icon_image)
+        self._calendar_window = picker
+        picker.protocol("WM_DELETE_WINDOW", self._close_calendar)
+        picker.bind("<Destroy>", self._clear_calendar_ref)
+
+    def _close_calendar(self):
+        if self._calendar_window is not None and self._calendar_window.winfo_exists():
+            self._calendar_window.destroy()
+        self._calendar_window = None
+
+    def _clear_calendar_ref(self, _event=None):
+        self._calendar_window = None
 
     def set_selected_date(self, selected):
         self.date_var.set(selected.strftime(DATE_FORMAT))
