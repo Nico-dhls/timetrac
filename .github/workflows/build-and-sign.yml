@@ -89,10 +89,8 @@ jobs:
 
           Compress-Archive -Path ".\release\*" -DestinationPath ".\dist\timetrac.zip" -Force
 
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: timetrac-release
-          path: |
-            dist/timetrac.exe
-            dist/timetrac.zip
+          path: dist/timetrac.zip
