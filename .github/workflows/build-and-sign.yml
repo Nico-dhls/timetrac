@@ -1,13 +1,13 @@
-name: Build and Sign EXE
+name: Build, Sign & Release EXE
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 jobs:
-  build-sign:
+  build-release:
     runs-on: windows-latest
 
     steps:
@@ -35,7 +35,6 @@ jobs:
             --name "timetrac" `
             --icon ".\timetable_icon.ico" `
             --version-file ".\version_info.txt" `
-            --add-data ".\timetable_icon.ico;." `
             ".\main.py"
 
       - name: Decode PFX
@@ -60,36 +59,34 @@ jobs:
         env:
           PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
         run: |
-          $exe = ".\dist\timetrac.exe"
           & "$env:SIGNTOOL" sign /v `
             /f "$env:PFX_PATH" /p "$env:PFX_PASSWORD" `
             /fd SHA256 /tr "http://timestamp.sectigo.com" /td SHA256 `
-            $exe
+            ".\dist\timetrac.exe"
 
-      - name: Verify signature (non-fatal for self-signed)
-        shell: pwsh
-        run: |
-          & "$env:SIGNTOOL" verify /pa ".\dist\timetrac.exe"
-          $code = $LASTEXITCODE
-      
-          Get-AuthenticodeSignature ".\dist\timetrac.exe" | Format-List Status,StatusMessage
-      
-          if ($code -ne 0) {
-            Write-Host "Verify failed because certificate is self-signed / untrusted on the runner. Continuing."
-            exit 0
-          }
-
-      - name: Package (zip)
+      - name: Package ZIP
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path ".\release" | Out-Null
-
           Copy-Item ".\dist\timetrac.exe" ".\release\timetrac.exe" -Force
           Copy-Item ".\LICENSE" ".\release\LICENSE" -Force
 
-          Compress-Archive -Path ".\release\*" -DestinationPath ".\dist\timetrac.zip" -Force
+          Compress-Archive `
+            -Path ".\release\timetrac.exe", ".\release\LICENSE" `
+            -DestinationPath ".\timetrac.zip" `
+            -Force
+
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          Get-FileHash ".\timetrac.zip" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  timetrac.zip" } |
+            Out-File "timetrac.zip.sha256" -Encoding ASCII
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/timetrac.zip
+          files: |
+            timetrac.zip
+            timetrac.zip.sha256
+          generate_release_notes: true
