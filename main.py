@@ -421,8 +421,8 @@ class TimeTrackerApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("1500x880")
-        self.minsize(1380, 820)
+        self.geometry("1500x820")
+        self.minsize(1380, 780)
         self.configure(bg="#0f1629")
         self.resizable(True, True)
 
@@ -532,7 +532,7 @@ class TimeTrackerApp(tk.Tk):
             "TButton",
             background=card_alt,
             foreground=fg,
-            padding=9,
+            padding=7,
             borderwidth=0,
         )
         style.map(
@@ -544,7 +544,7 @@ class TimeTrackerApp(tk.Tk):
             "Ghost.TButton",
             background=card_bg,
             foreground=fg,
-            padding=8,
+            padding=6,
             borderwidth=0,
         )
         style.map(
@@ -556,7 +556,7 @@ class TimeTrackerApp(tk.Tk):
             "Accent.TButton",
             background=accent,
             foreground="#ffffff",
-            padding=12,
+            padding=8,
             borderwidth=0,
         )
         style.map(
@@ -564,12 +564,12 @@ class TimeTrackerApp(tk.Tk):
             background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
         )
-        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=11)
-        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=11)
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=9)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=9)
-        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=9)
-        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=9)
+        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=10)
+        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=10)
+        accent_img = self._rounded_rect_image(accent, card_bg, radius=8)
+        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=8)
+        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=8)
+        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=8)
         self._img_refs.extend(
             [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
         )
@@ -610,7 +610,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "ToolbarRounded.TButton",
             foreground="#f4f6fb",
-            padding=9,
+            padding=7,
             background="#4b6fb0",
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
@@ -652,7 +652,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "AccentRounded.TButton",
             foreground="#ffffff",
-            padding=10,
+            padding=8,
             background=accent,
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
@@ -694,7 +694,7 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "DangerRounded.TButton",
             foreground="#ffffff",
-            padding=9,
+            padding=7,
             background="#d14b64",
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
