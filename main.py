@@ -473,22 +473,17 @@ class TimeTrackerApp(tk.Tk):
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-
-        # New Modern Dark Palette
-        base_bg = "#0f172a"  # Slate-900
-        card_bg = "#1e293b"  # Slate-800
-        field_bg = "#334155" # Slate-700
-        focus_bg = "#475569" # Slate-600
-
-        accent = "#3b82f6"       # Blue-500
-        accent_active = "#60a5fa" # Blue-400
-        accent_soft = "#1e40af"   # Blue-800
-
-        fg = "#f8fafc"       # Slate-50
-        muted = "#94a3b8"    # Slate-400
-        border = "#475569"   # Slate-600
-        card_alt = "#0f172a" # Slate-900 (for headers/groups)
-
+        base_bg = "#070d1c"
+        card_bg = "#0e162b"
+        field_bg = "#111c33"
+        focus_bg = "#1a2d4c"
+        accent = "#8d7bff"
+        accent_active = "#4ee0ff"
+        fg = "#eef2ff"
+        muted = "#9fb6de"
+        border = "#1a2742"
+        card_alt = "#122041"
+        accent_soft = "#355ca3"
         self._colors = {
             "field_bg": field_bg,
             "focus_bg": focus_bg,
@@ -502,26 +497,10 @@ class TimeTrackerApp(tk.Tk):
             "accent_soft": accent_soft,
         }
         self._img_refs = []
-
-        # Modern Font Stack
-        main_font = ("Segoe UI", 10)
-        bold_font = ("Segoe UI", 10, "bold")
-        header_font = ("Segoe UI", 18, "bold")
-
-        # Convert tuple fonts to string format for option_add
-        # e.g. ("Segoe UI", 10) -> "{Segoe UI} 10"
-        def font_to_str(font_tuple):
-            family, size, *styles = font_tuple
-            style_str = " ".join(styles)
-            return f"{{{family}}} {size} {style_str}".strip()
-
-        self.option_add("*Font", font_to_str(main_font))
-        self.option_add("*TCombobox*Listbox.font", font_to_str(main_font))
+        self.option_add("*Font", ("Segoe UI", 11))
+        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 11))
         self.option_add("*TCombobox*Listbox.background", field_bg)
         self.option_add("*TCombobox*Listbox.foreground", fg)
-        self.option_add("*TCombobox*Listbox.selectBackground", accent)
-        self.option_add("*TCombobox*Listbox.selectForeground", "#ffffff")
-
         style.configure(
             "TFrame",
             background=base_bg,
@@ -544,21 +523,20 @@ class TimeTrackerApp(tk.Tk):
             "Title.TLabel",
             background=card_bg,
             foreground="#ffffff",
-            font=header_font,
+            font=("Segoe UI", 16, "bold"),
         )
         style.configure(
             "Subtle.TLabel",
             background=card_bg,
             foreground=muted,
-            font=main_font,
+            font=("Segoe UI", 10),
         )
         style.configure(
             "TButton",
             background=card_alt,
             foreground=fg,
-            padding=8,
+            padding=6,
             borderwidth=0,
-            font=bold_font,
         )
         style.map(
             "TButton",
@@ -589,16 +567,12 @@ class TimeTrackerApp(tk.Tk):
             background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
         )
-        # Create rounded button images with the new colors
-        # Increase radius for a more modern look
-        toolbar_normal = self._rounded_rect_image(field_bg, card_bg, radius=6)
-        toolbar_hover = self._rounded_rect_image(focus_bg, card_bg, radius=6)
-
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=6)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=6)
-
-        danger_img = self._rounded_rect_image("#ef4444", card_bg, radius=6) # Red-500
-        danger_hover = self._rounded_rect_image("#f87171", card_bg, radius=6)
+        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=9)
+        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=9)
+        accent_img = self._rounded_rect_image(accent, card_bg, radius=7)
+        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=7)
+        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=7)
+        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=7)
         self._img_refs.extend(
             [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
         )
@@ -638,11 +612,11 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "ToolbarRounded.TButton",
-            foreground="#e2e8f0",
-            padding=8,
-            background=field_bg,
+            foreground="#f4f6fb",
+            padding=6,
+            background="#4b6fb0",
             borderwidth=0,
-            font=bold_font,
+            font=("Segoe UI", 10, "bold"),
         )
         style.element_create(
             "AccentRounded.border",
@@ -681,10 +655,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "AccentRounded.TButton",
             foreground="#ffffff",
-            padding=8,
+            padding=6,
             background=accent,
             borderwidth=0,
-            font=bold_font,
+            font=("Segoe UI", 10, "bold"),
         )
         style.element_create(
             "DangerRounded.border",
@@ -723,10 +697,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "DangerRounded.TButton",
             foreground="#ffffff",
-            padding=8,
-            background="#ef4444",
+            padding=6,
+            background="#d14b64",
             borderwidth=0,
-            font=bold_font,
+            font=("Segoe UI", 10, "bold"),
         )
         style.configure(
             "TEntry",
@@ -746,17 +720,17 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "Date.TEntry",
-            fieldbackground=field_bg,
+            fieldbackground="#20365d",
             foreground=fg,
             insertcolor=fg,
-            bordercolor=accent,
-            lightcolor=accent,
+            bordercolor="#5f8bdc",
+            lightcolor="#5f8bdc",
             darkcolor=border,
             padding=8,
         )
         style.map(
             "Date.TEntry",
-            fieldbackground=[("focus", focus_bg)],
+            fieldbackground=[("focus", "#294a7c")],
             bordercolor=[("focus", accent_active)],
         )
         style.configure(
@@ -778,14 +752,13 @@ class TimeTrackerApp(tk.Tk):
             background=card_bg,
             fieldbackground=card_bg,
             foreground=fg,
-            rowheight=34,
+            rowheight=30,
             borderwidth=0,
             highlightthickness=0,
-            font=main_font,
         )
         style.map(
             "Modern.Treeview",
-            background=[("selected", accent_soft)],
+            background=[("selected", "#1f3d69")],
             foreground=[("selected", "#ffffff")],
         )
         style.configure(
@@ -793,8 +766,8 @@ class TimeTrackerApp(tk.Tk):
             background=card_alt,
             foreground=fg,
             relief="flat",
-            font=bold_font,
-            padding=10,
+            font=("Segoe UI", 10, "bold"),
+            padding=8,
         )
         style.map(
             "Modern.Treeview.Heading",
@@ -841,9 +814,9 @@ class TimeTrackerApp(tk.Tk):
 
         date_shell = tk.Frame(
             date_frame,
-            bg=self._colors["field_bg"],
+            bg="#1b2f52",
             highlightthickness=1,
-            highlightbackground=self._colors["border"],
+            highlightbackground=self._colors["accent_soft"],
             bd=0,
         )
         date_shell.grid(row=0, column=1, padx=(10, 12), sticky="ew")
@@ -852,7 +825,7 @@ class TimeTrackerApp(tk.Tk):
         date_icon = tk.Label(
             date_shell,
             text="📅",
-            bg=self._colors["field_bg"],
+            bg="#1b2f52",
             fg=self._colors["muted"],
             font=("Segoe UI", 12),
         )
