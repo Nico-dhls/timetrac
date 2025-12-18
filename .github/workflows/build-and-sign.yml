@@ -34,14 +34,37 @@ jobs:
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install cx_Freeze
 
-      # SCHRITT A: Version in setup.py schreiben
-      # Wir suchen nach "VERSION_PLACEHOLDER" und ersetzen es durch den echten Tag (z.B. "1.0.2")
+     # SCHRITT A (KORRIGIERT): Robuste Version Logik
       - name: Inject Version into setup.py
         shell: pwsh
         run: |
-          $tag = $env:GITHUB_REF_NAME.TrimStart("v")
-          Write-Host "Setze Version auf: $tag"
-          (Get-Content setup.py) -replace 'VERSION_PLACEHOLDER', $tag | Set-Content setup.py
+          # 1. Fall: Manueller Start (Workflow Dispatch)
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $rawVersion = "${{ inputs.debug_version }}"
+            Write-Host "Trigger: Manuell. Eingabe: $rawVersion"
+          
+          # 2. Fall: Start durch Git Tag (z.B. v1.0.0)
+          } elseif ($env:GITHUB_REF_TYPE -eq "tag") {
+            $rawVersion = $env:GITHUB_REF_NAME.TrimStart("v")
+            Write-Host "Trigger: Tag. Version: $rawVersion"
+          
+          # 3. Fall: Start durch normalen Push auf 'main' (Fallback)
+          } else {
+            Write-Warning "Trigger: Branch Push ('$env:GITHUB_REF_NAME'). Dies ist keine gültige Version."
+            $rawVersion = "0.0.0"
+            Write-Host "Benutze Fallback-Version: $rawVersion"
+          }
+
+          # Sicherheits-Check: Prüfen, ob die Version mit einer Zahl beginnt
+          # Wenn immer noch Quatsch drin steht (z.B. "main"), erzwinge 0.0.0
+          if ($rawVersion -notmatch "^\d") {
+             Write-Warning "Version '$rawVersion' ist ungültig für Python. Setze auf 0.0.0 zurück."
+             $rawVersion = "0.0.0"
+          }
+
+          # In setup.py schreiben
+          Write-Host "Schreibe Version $rawVersion in setup.py..."
+          (Get-Content setup.py) -replace 'VERSION_PLACEHOLDER', $rawVersion | Set-Content setup.py
 
       # SCHRITT B: MSI bauen
       # cx_Freeze erstellt nun die MSI mit der korrekten Version in den Metadaten
