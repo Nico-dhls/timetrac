@@ -508,8 +508,15 @@ class TimeTrackerApp(tk.Tk):
         bold_font = ("Segoe UI", 10, "bold")
         header_font = ("Segoe UI", 18, "bold")
 
-        self.option_add("*Font", main_font)
-        self.option_add("*TCombobox*Listbox.font", main_font)
+        # Convert tuple fonts to string format for option_add
+        # e.g. ("Segoe UI", 10) -> "{Segoe UI} 10"
+        def font_to_str(font_tuple):
+            family, size, *styles = font_tuple
+            style_str = " ".join(styles)
+            return f"{{{family}}} {size} {style_str}".strip()
+
+        self.option_add("*Font", font_to_str(main_font))
+        self.option_add("*TCombobox*Listbox.font", font_to_str(main_font))
         self.option_add("*TCombobox*Listbox.background", field_bg)
         self.option_add("*TCombobox*Listbox.foreground", fg)
         self.option_add("*TCombobox*Listbox.selectBackground", accent)
@@ -1623,7 +1630,7 @@ class TimeTrackerApp(tk.Tk):
             self.timer_btn.configure(text="Timer beenden", style="DangerRounded.TButton")
             self.time_mode.set("range")
             self._apply_time_mode()
-            self.abort_btn.grid()
+            self.abort_btn.grid(row=0, column=6, padx=(4, 0))
             self.update_timer_display()
         else:
             # Stop timer
