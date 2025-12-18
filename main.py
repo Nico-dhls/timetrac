@@ -4,11 +4,14 @@ from pathlib import Path
 import calendar
 import tkinter as tk
 from tkinter import ttk, messagebox
-import tkinter.font as tkfont
+import customtkinter as ctk
 
+# Configure CustomTkinter
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("dark-blue")
 
 class Tooltip:
-    def __init__(self, widget, text, bg="#0f1629", fg="#e6e8ef"):
+    def __init__(self, widget, text, bg="#1e293b", fg="#f8fafc"):
         self.widget = widget
         self.text = text
         self.bg = bg
@@ -36,7 +39,7 @@ class Tooltip:
             borderwidth=1,
             padx=8,
             pady=6,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 10),
         )
         label.pack()
         tw.wm_geometry(f"+{x}+{y}")
@@ -117,82 +120,38 @@ GERMAN_MONTHS = [
 ]
 
 
-class CalendarPicker(tk.Toplevel):
+class CalendarPicker(ctk.CTkToplevel):
     def __init__(self, master, current_date, on_select, icon_image=None):
         super().__init__(master)
         self.title("Datum wählen")
         self.on_select = on_select
         self.selected = current_date
-        self.configure(padx=10, pady=10, bg="#1e1e1e")
         self.resizable(False, False)
         if icon_image is not None:
-            self.iconphoto(False, icon_image)
+            self.after(200, lambda: self.iconphoto(False, icon_image))
 
-        self._style = ttk.Style(self)
-        shared_bg = "#101a2e"
-        self._style.configure("Calendar.TFrame", background=shared_bg)
-        self._style.configure(
-            "CalendarDay.TButton",
-            padding=4,
-            background="#1b2b44",
-            foreground="#e6e8ef",
-            bordercolor="#1b2b44",
-        )
-        self._style.map(
-            "CalendarDay.TButton",
-            background=[("active", "#233756")],
-            foreground=[("active", "#ffffff")],
-        )
-        self._style.configure(
-            "CalendarHeader.TLabel",
-            background=shared_bg,
-            foreground="#d4d4d4",
-        )
-        self._style.configure(
-            "CalendarMonth.TLabel",
-            background=shared_bg,
-            foreground="#e6e8ef",
-            font=("Segoe UI", 10, "bold"),
-        )
-        self._style.configure(
-            "SelectedWeek.TButton",
-            background="#2a3f55",
-            foreground="#d4d4d4",
-            bordercolor="#2a3f55",
-        )
-        self._style.configure(
-            "SelectedWeek.TLabel",
-            background="#2a3f55",
-            foreground="#d4d4d4",
-        )
-        self._style.configure(
-            "SelectedDay.TButton",
-            background="#569cd6",
-            foreground="#ffffff",
-            bordercolor="#569cd6",
-        )
-        self._style.map(
-            "SelectedDay.TButton",
-            background=[("active", "#6cb8ff")],
-            foreground=[("active", "#ffffff")],
-        )
+        # Ensure it stays on top
+        self.attributes("-topmost", True)
 
         self.month_var = tk.IntVar(value=current_date.month)
         self.year_var = tk.IntVar(value=current_date.year)
 
-        header = ttk.Frame(self, style="Calendar.TFrame")
-        header.pack(fill=tk.X, pady=(0, 8))
+        container = ctk.CTkFrame(self, fg_color="transparent")
+        container.pack(padx=15, pady=15)
 
-        prev_btn = ttk.Button(header, text="◀", width=3, command=self.prev_month)
+        header = ctk.CTkFrame(container, fg_color="transparent")
+        header.pack(fill=tk.X, pady=(0, 10))
+
+        prev_btn = ctk.CTkButton(header, text="◀", width=40, command=self.prev_month, fg_color="transparent", border_width=1)
         prev_btn.pack(side=tk.LEFT)
 
-        self.month_label = ttk.Label(header, text="", style="CalendarMonth.TLabel")
+        self.month_label = ctk.CTkLabel(header, text="", font=("Segoe UI", 14, "bold"))
         self.month_label.pack(side=tk.LEFT, expand=True)
 
-        next_btn = ttk.Button(header, text="▶", width=3, command=self.next_month)
+        next_btn = ctk.CTkButton(header, text="▶", width=40, command=self.next_month, fg_color="transparent", border_width=1)
         next_btn.pack(side=tk.RIGHT)
 
-        self.days_frame = ttk.Frame(self, style="Calendar.TFrame")
+        self.days_frame = ctk.CTkFrame(container, fg_color="transparent")
         self.days_frame.pack()
 
         self.build_calendar()
@@ -224,7 +183,7 @@ class CalendarPicker(tk.Toplevel):
         month = self.month_var.get()
         year = self.year_var.get()
         month_name = GERMAN_MONTHS[month - 1]
-        self.month_label.config(text=f"{month_name} {year}")
+        self.month_label.configure(text=f"{month_name} {year}")
 
         selected_week_row = None
         if self.selected and self.selected.month == month and self.selected.year == year:
@@ -235,34 +194,39 @@ class CalendarPicker(tk.Toplevel):
 
         weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
         for col, name in enumerate(weekdays):
-            ttk.Label(
+            ctk.CTkLabel(
                 self.days_frame,
                 text=name,
-                width=3,
+                width=40,
+                height=30,
                 anchor="center",
-                style="CalendarHeader.TLabel",
-            ).grid(row=0, column=col)
+                text_color="gray"
+            ).grid(row=0, column=col, padx=2, pady=2)
 
         for row, week in enumerate(calendar.monthcalendar(year, month), start=1):
             for col, day in enumerate(week):
                 if day == 0:
-                    label_style = "SelectedWeek.TLabel" if selected_week_row == row else "CalendarHeader.TLabel"
-                    ttk.Label(self.days_frame, text="", width=3, style=label_style).grid(row=row, column=col)
                     continue
-                style = "CalendarDay.TButton"
+
                 day_date = date(year, month, day)
-                if self.selected == day_date:
-                    style = "SelectedDay.TButton"
-                elif selected_week_row == row:
-                    style = "SelectedWeek.TButton"
-                btn = ttk.Button(
+                is_selected = (self.selected == day_date)
+
+                fg_color = None
+                if is_selected:
+                    fg_color = ("#3a7ebf", "#1f6aa5") # Custom blueish
+
+                btn = ctk.CTkButton(
                     self.days_frame,
                     text=str(day),
-                    width=3,
-                    style=style,
+                    width=40,
+                    height=30,
+                    fg_color=fg_color if is_selected else "transparent",
+                    border_width=1 if not is_selected else 0,
+                    border_color=("#3E4551", "#3E4551"),
+                    text_color=("black", "white"),
                     command=lambda d=day: self.select_day(d),
                 )
-                btn.grid(row=row, column=col, padx=1, pady=1)
+                btn.grid(row=row, column=col, padx=2, pady=2)
 
     def select_day(self, day):
         selected_date = date(self.year_var.get(), self.month_var.get(), day)
@@ -271,62 +235,147 @@ class CalendarPicker(tk.Toplevel):
         self.destroy()
 
 
-class PresetManager(tk.Toplevel):
+class TimePicker(ctk.CTkToplevel):
+    def __init__(self, master, on_select, icon_image=None):
+        super().__init__(master)
+        self.title("Zeit wählen")
+        self.geometry("280x400")
+        self.resizable(False, True)
+        self.on_select = on_select
+        self.transient(master)
+        self.attributes("-topmost", True)
+        if icon_image is not None:
+            self.after(200, lambda: self.iconphoto(False, icon_image))
+
+        self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Generate list: 00:00 - 23:00 + Current Time
+        time_slots = [f"{h:02d}:00" for h in range(24)]
+
+        now = datetime.now()
+        current_time_str = now.strftime(TIME_FORMAT)
+        if current_time_str not in time_slots:
+            time_slots.append(current_time_str)
+            time_slots.sort()
+
+        target_index = -1
+        try:
+            target_index = time_slots.index(current_time_str)
+        except ValueError:
+            pass
+
+        # Build Vertical List
+        for i, time_str in enumerate(time_slots):
+            is_current = (time_str == current_time_str)
+            fg_color = "transparent"
+            border_width = 1
+
+            if is_current:
+                fg_color = ("#3a7ebf", "#1f6aa5") # Highlight current
+                border_width = 0
+
+            btn = ctk.CTkButton(
+                self.scroll_frame,
+                text=time_str,
+                height=32,
+                fg_color=fg_color,
+                border_width=border_width,
+                border_color=("#3E4551", "#3E4551"),
+                text_color=("black", "white"),
+                command=lambda t=time_str: self.select_time(t)
+            )
+            btn.pack(fill=tk.X, pady=2)
+
+        # Scroll to previous hour relative to current time to provide context
+        if target_index != -1 and target_index > 0:
+            # Simple heuristic: scroll to index-1
+            # There are len(time_slots) items.
+            # CTkScrollableFrame uses the canvas yview_moveto.
+            # We need to wait for visibility/rendering to scroll accurately,
+            # but usually update_idletasks works.
+
+            # The canvas is private in CTkScrollableFrame usually accessed via _parent_canvas
+            # Index / Total
+            fraction = max(0, target_index - 1) / len(time_slots)
+            self.after(100, lambda: self._scroll_to(fraction))
+
+    def _scroll_to(self, fraction):
+        try:
+            if hasattr(self.scroll_frame, "_parent_canvas"):
+                self.scroll_frame._parent_canvas.yview_moveto(fraction)
+        except Exception:
+            pass
+
+    def select_time(self, time_str):
+        self.on_select(time_str)
+        self.destroy()
+
+
+class PresetManager(ctk.CTkToplevel):
     def __init__(self, master, presets, on_save, icon_image=None):
         super().__init__(master)
         self.title("Vorlagen verwalten")
-        self.configure(bg="#1e1e1e", padx=10, pady=10)
+        self.geometry("600x400")
         self.resizable(False, False)
+        # CTk toplevels act as independent windows by default, keep it transient
         self.transient(master)
         if icon_image is not None:
-            self.iconphoto(False, icon_image)
+             self.after(200, lambda: self.iconphoto(False, icon_image))
         self.protocol("WM_DELETE_WINDOW", self.save_and_close)
 
         self.presets = [dict(preset) for preset in presets]
         self.on_save = on_save
 
-        ttk.Label(self, text="Vorlagen setzen PSP und Leistungsart automatisch.").pack(anchor=tk.W, pady=(0, 8))
+        main_layout = ctk.CTkFrame(self, fg_color="transparent")
+        main_layout.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        list_frame = ttk.Frame(self)
-        list_frame.pack(fill=tk.BOTH, expand=True)
+        ctk.CTkLabel(main_layout, text="Vorlagen setzen PSP und Leistungsart automatisch.", text_color="gray").pack(anchor=tk.W, pady=(0, 10))
+
+        # Treeview Wrapper Frame
+        tree_frame = ctk.CTkFrame(main_layout)
+        tree_frame.pack(fill=tk.BOTH, expand=True)
 
         columns = ("name", "psp", "type")
-        self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=8)
+        # Standard ttk Treeview needs styling to match CTk
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=8)
         self.tree.heading("name", text="Name")
         self.tree.heading("psp", text="PSP")
         self.tree.heading("type", text="Leistungsart")
-        self.tree.column("name", width=160)
+        self.tree.column("name", width=200)
         self.tree.column("psp", width=120)
         self.tree.column("type", width=160)
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
+        # Scrollbar
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
+
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
 
-        form = ttk.Frame(self)
-        form.pack(fill=tk.X, pady=(10, 4))
+        form = ctk.CTkFrame(main_layout, fg_color="transparent")
+        form.pack(fill=tk.X, pady=(15, 5))
 
         self.name_var = tk.StringVar()
         self.psp_var = tk.StringVar()
         self.type_var = tk.StringVar()
 
-        ttk.Label(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
-        ttk.Entry(form, textvariable=self.name_var, width=18).grid(row=1, column=0, sticky=tk.W, padx=(0, 8))
+        ctk.CTkLabel(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.name_var, width=180).grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
 
-        ttk.Label(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
-        ttk.Entry(form, textvariable=self.psp_var, width=18).grid(row=1, column=1, sticky=tk.W, padx=(0, 8))
+        ctk.CTkLabel(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.psp_var, width=150).grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
 
-        ttk.Label(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
-        ttk.Entry(form, textvariable=self.type_var, width=18).grid(row=1, column=2, sticky=tk.W)
+        ctk.CTkLabel(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.type_var, width=180).grid(row=1, column=2, sticky=tk.W)
 
-        btn_frame = ttk.Frame(self)
-        btn_frame.pack(fill=tk.X, pady=(8, 0))
+        btn_frame = ctk.CTkFrame(main_layout, fg_color="transparent")
+        btn_frame.pack(fill=tk.X, pady=(15, 0))
 
-        ttk.Button(btn_frame, text="Hinzufügen", command=self.add_preset).pack(side=tk.LEFT)
-        self.update_btn = ttk.Button(btn_frame, text="Aktualisieren", command=self.update_selected)
-        ttk.Button(btn_frame, text="Entfernen", command=self.remove_selected).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(btn_frame, text="Schließen", command=self.save_and_close).pack(side=tk.RIGHT)
+        ctk.CTkButton(btn_frame, text="Hinzufügen", command=self.add_preset).pack(side=tk.LEFT)
+        self.update_btn = ctk.CTkButton(btn_frame, text="Aktualisieren", command=self.update_selected)
+        ctk.CTkButton(btn_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").pack(side=tk.LEFT, padx=(10, 0))
+        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.refresh_list()
@@ -399,7 +448,7 @@ class PresetManager(tk.Toplevel):
                 self.update_btn.pack_forget()
             return
         if not self.update_btn.winfo_manager():
-            self.update_btn.pack(side=tk.LEFT, padx=(6, 0))
+            self.update_btn.pack(side=tk.LEFT, padx=(10, 0))
 
     def remove_selected(self):
         idx = self._selected_index()
@@ -417,23 +466,22 @@ class PresetManager(tk.Toplevel):
         self.destroy()
 
 
-class TimeTrackerApp(tk.Tk):
+class TimeTrackerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Zeiterfassung")
-        self.geometry("1480x760")
-        self.minsize(1340, 700)
-        self.configure(bg="#070d1c")
-        self.resizable(True, True)
+        self.geometry("1200x800")
+        self.minsize(1000, 700)
 
-        self.icon_image = self._load_icon()
-
+        # Data Loading
         self.data = load_data()
         self.entries = self.data["entries"]
         self.presets = self.data["presets"]
         self.editing_index = None
         self._calendar_window = None
+        self.icon_image = self._load_icon()
 
+        # Variables
         self.date_var = tk.StringVar(value=date.today().strftime(DATE_FORMAT))
         self.preset_var = tk.StringVar()
         self.psp_var = tk.StringVar()
@@ -446,707 +494,251 @@ class TimeTrackerApp(tk.Tk):
         self.timer_start = None
 
         self._set_default_times()
-
-        self._setup_styles()
+        self._configure_treeview_style()
         self.build_ui()
         self.refresh_entry_list()
 
-    def _rounded_rect_image(self, fill, bg, radius=10):
-        size = radius * 2 + 6
-        img = tk.PhotoImage(width=size, height=size)
-        img.put(bg, to=(0, 0, size, size))
-        for x in range(size):
-            for y in range(size):
-                dx = min(x, size - x - 1)
-                dy = min(y, size - y - 1)
-                # inside straight edges
-                if dx >= radius or dy >= radius:
-                    img.put(fill, (x, y))
-                    continue
-                # inside rounded corners
-                cx = radius - dx - 0.5
-                cy = radius - dy - 0.5
-                if cx * cx + cy * cy <= radius * radius:
-                    img.put(fill, (x, y))
-        return img
-
-    def _setup_styles(self):
-        style = ttk.Style(self)
+    def _configure_treeview_style(self):
+        # Configure standard Treeview to match CustomTkinter Dark Theme
+        style = ttk.Style()
         style.theme_use("clam")
-        base_bg = "#070d1c"
-        card_bg = "#0e162b"
-        field_bg = "#111c33"
-        focus_bg = "#1a2d4c"
-        accent = "#8d7bff"
-        accent_active = "#4ee0ff"
-        fg = "#eef2ff"
-        muted = "#9fb6de"
-        border = "#1a2742"
-        card_alt = "#122041"
-        accent_soft = "#355ca3"
-        self._colors = {
-            "field_bg": field_bg,
-            "focus_bg": focus_bg,
-            "base": base_bg,
-            "card": card_bg,
-            "accent": accent,
-            "accent_active": accent_active,
-            "muted": muted,
-            "border": border,
-            "card_alt": card_alt,
-            "accent_soft": accent_soft,
-        }
-        self._img_refs = []
-        self.option_add("*Font", ("Segoe UI", 11))
-        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 11))
-        self.option_add("*TCombobox*Listbox.background", field_bg)
-        self.option_add("*TCombobox*Listbox.foreground", fg)
-        style.configure(
-            "TFrame",
-            background=base_bg,
-        )
-        style.configure(
-            "Card.TFrame",
-            background=card_bg,
-        )
-        style.configure(
-            "TLabel",
-            background=base_bg,
-            foreground=fg,
-        )
-        style.configure(
-            "Card.TLabel",
-            background=card_bg,
-            foreground=fg,
-        )
-        style.configure(
-            "Title.TLabel",
-            background=card_bg,
-            foreground="#ffffff",
-            font=("Segoe UI", 16, "bold"),
-        )
-        style.configure(
-            "Subtle.TLabel",
-            background=card_bg,
-            foreground=muted,
-            font=("Segoe UI", 10),
-        )
-        style.configure(
-            "TButton",
-            background=card_alt,
-            foreground=fg,
-            padding=6,
-            borderwidth=0,
-        )
-        style.map(
-            "TButton",
-            background=[("active", focus_bg)],
-            foreground=[("active", "#ffffff")],
-        )
-        style.configure(
-            "Ghost.TButton",
-            background=card_bg,
-            foreground=fg,
-            padding=5,
-            borderwidth=0,
-        )
-        style.map(
-            "Ghost.TButton",
-            background=[("active", focus_bg)],
-            foreground=[("active", "#ffffff")],
-        )
-        style.configure(
-            "Accent.TButton",
-            background=accent,
-            foreground="#ffffff",
-            padding=6,
-            borderwidth=0,
-        )
-        style.map(
-            "Accent.TButton",
-            background=[("active", accent_active)],
-            foreground=[("active", "#ffffff")],
-        )
-        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=9)
-        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=9)
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=7)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=7)
-        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=7)
-        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=7)
-        self._img_refs.extend(
-            [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
-        )
-        style.element_create(
-            "ToolbarRounded.border",
-            "image",
-            toolbar_normal,
-            ("active", toolbar_hover),
-            ("pressed", toolbar_hover),
-            border=10,
-            sticky="nswe",
-        )
-        style.layout(
-            "ToolbarRounded.TButton",
-            [
-                (
-                    "ToolbarRounded.border",
-                    {
-                        "children": [
-                            (
-                                "Button.padding",
-                                {
-                                    "children": [
-                                        (
-                                            "Button.label",
-                                            {"sticky": "nswe"},
-                                        )
-                                    ],
-                                    "sticky": "nswe",
-                                },
-                            )
-                        ],
-                        "sticky": "nswe",
-                    },
-                )
-            ],
-        )
-        style.configure(
-            "ToolbarRounded.TButton",
-            foreground="#f4f6fb",
-            padding=6,
-            background="#4b6fb0",
-            borderwidth=0,
-            font=("Segoe UI", 10, "bold"),
-        )
-        style.element_create(
-            "AccentRounded.border",
-            "image",
-            accent_img,
-            ("active", accent_hover),
-            ("pressed", accent_hover),
-            border=10,
-            sticky="nswe",
-        )
-        style.layout(
-            "AccentRounded.TButton",
-            [
-                (
-                    "AccentRounded.border",
-                    {
-                        "children": [
-                            (
-                                "Button.padding",
-                                {
-                                    "children": [
-                                        (
-                                            "Button.label",
-                                            {"sticky": "nswe"},
-                                        )
-                                    ],
-                                    "sticky": "nswe",
-                                },
-                            )
-                        ],
-                        "sticky": "nswe",
-                    },
-                )
-            ],
-        )
-        style.configure(
-            "AccentRounded.TButton",
-            foreground="#ffffff",
-            padding=6,
-            background=accent,
-            borderwidth=0,
-            font=("Segoe UI", 10, "bold"),
-        )
-        style.element_create(
-            "DangerRounded.border",
-            "image",
-            danger_img,
-            ("active", danger_hover),
-            ("pressed", danger_hover),
-            border=10,
-            sticky="nswe",
-        )
-        style.layout(
-            "DangerRounded.TButton",
-            [
-                (
-                    "DangerRounded.border",
-                    {
-                        "children": [
-                            (
-                                "Button.padding",
-                                {
-                                    "children": [
-                                        (
-                                            "Button.label",
-                                            {"sticky": "nswe"},
-                                        )
-                                    ],
-                                    "sticky": "nswe",
-                                },
-                            )
-                        ],
-                        "sticky": "nswe",
-                    },
-                )
-            ],
-        )
-        style.configure(
-            "DangerRounded.TButton",
-            foreground="#ffffff",
-            padding=6,
-            background="#d14b64",
-            borderwidth=0,
-            font=("Segoe UI", 10, "bold"),
-        )
-        style.configure(
-            "TEntry",
-            fieldbackground=field_bg,
-            foreground=fg,
-            insertcolor=fg,
-            bordercolor=border,
-            lightcolor=accent,
-            darkcolor=border,
-            padding=6,
-        )
-        style.map(
-            "TEntry",
-            fieldbackground=[("focus", focus_bg)],
-            bordercolor=[("focus", accent)],
-            foreground=[("focus", fg)],
-        )
-        style.configure(
-            "Date.TEntry",
-            fieldbackground="#20365d",
-            foreground=fg,
-            insertcolor=fg,
-            bordercolor="#5f8bdc",
-            lightcolor="#5f8bdc",
-            darkcolor=border,
-            padding=8,
-        )
-        style.map(
-            "Date.TEntry",
-            fieldbackground=[("focus", "#294a7c")],
-            bordercolor=[("focus", accent_active)],
-        )
-        style.configure(
-            "TCombobox",
-            fieldbackground=field_bg,
-            background=field_bg,
-            foreground=fg,
-            arrowcolor="#f3f3f3",
-            bordercolor=border,
-        )
-        style.map(
-            "TCombobox",
-            fieldbackground=[("readonly", field_bg), ("focus", focus_bg)],
-            background=[("focus", focus_bg)],
-            foreground=[("readonly", fg)],
-        )
-        style.configure(
-            "Modern.Treeview",
-            background=card_bg,
-            fieldbackground=card_bg,
-            foreground=fg,
-            rowheight=30,
-            borderwidth=0,
-            highlightthickness=0,
-        )
-        style.map(
-            "Modern.Treeview",
-            background=[("selected", "#1f3d69")],
-            foreground=[("selected", "#ffffff")],
-        )
-        style.configure(
-            "Modern.Treeview.Heading",
-            background=card_alt,
-            foreground=fg,
-            relief="flat",
-            font=("Segoe UI", 10, "bold"),
-            padding=8,
-        )
-        style.map(
-            "Modern.Treeview.Heading",
-            background=[("active", focus_bg)],
-            foreground=[("active", "#ffffff")],
-        )
 
-    def _card(self, parent):
-        frame = tk.Frame(
-            parent,
-            bg=self._colors["card"],
-            bd=0,
-            highlightthickness=1,
-            highlightbackground=self._colors["accent_soft"],
-            highlightcolor=self._colors["accent_soft"],
-            padx=16,
-            pady=16,
-        )
-        return frame
+        bg_color = "#2b2b2b" # Dark gray (approx ctk frame color)
+        fg_color = "white"
+        selected_bg = "#1f538d" # Standard ctk blue
+
+        style.configure("Treeview",
+                        background="#242424", # Even darker for list
+                        foreground=fg_color,
+                        fieldbackground="#242424",
+                        borderwidth=0,
+                        rowheight=30,
+                        font=("Segoe UI", 11))
+
+        style.map("Treeview",
+                  background=[("selected", selected_bg)],
+                  foreground=[("selected", "white")])
+
+        style.configure("Treeview.Heading",
+                        background="#333333",
+                        foreground="white",
+                        relief="flat",
+                        font=("Segoe UI", 11, "bold"),
+                        padding=(10, 8))
+
+        style.map("Treeview.Heading",
+                  background=[("active", "#404040")])
 
     def build_ui(self):
-        main_frame = tk.Frame(self, bg=self._colors["base"])
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
-        main_frame.grid_columnconfigure(0, weight=11, uniform="cards")
-        main_frame.grid_columnconfigure(1, weight=17, uniform="cards")
+        # Main Layout
+        self.grid_columnconfigure(0, weight=1, uniform="group1")
+        self.grid_columnconfigure(1, weight=1, uniform="group1")
+        self.grid_rowconfigure(0, weight=1)
 
-        form_card = self._card(main_frame)
-        form_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-        form_card.grid_columnconfigure(0, weight=1)
+        # Left Column: Form
+        form_frame = ctk.CTkFrame(self)
+        form_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        form_frame.grid_columnconfigure(0, weight=1)
 
-        ttk.Label(form_card, text="Zeiterfassung", style="Title.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(
-            form_card,
-            text="Erfasse Zeiten schneller mit modernen Eingabeelementen.",
-            style="Subtle.TLabel",
-        ).grid(row=1, column=0, sticky="w", pady=(2, 12))
+        ctk.CTkLabel(form_frame, text="Zeiterfassung", font=("Segoe UI", 24, "bold"), text_color=("gray10", "gray90")).grid(row=0, column=0, sticky="w", padx=20, pady=(20, 5))
+        ctk.CTkLabel(form_frame, text="Erfasse Zeiten schnell & modern.", text_color="gray").grid(row=1, column=0, sticky="w", padx=20, pady=(0, 20))
 
-        date_frame = ttk.Frame(form_card, style="Card.TFrame")
-        date_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
-        date_frame.grid_columnconfigure(1, weight=1)
+        # Date Selection
+        date_card = ctk.CTkFrame(form_frame)
+        date_card.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 15))
+        date_card.grid_columnconfigure(1, weight=1)
 
-        date_label = ttk.Label(date_frame, text="Datum:", style="Card.TLabel")
-        date_label.grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(date_card, text="Datum:").grid(row=0, column=0, padx=15, pady=15, sticky="w")
 
-        date_shell = tk.Frame(
-            date_frame,
-            bg="#1b2f52",
-            highlightthickness=1,
-            highlightbackground=self._colors["accent_soft"],
-            bd=0,
-        )
-        date_shell.grid(row=0, column=1, padx=(10, 12), sticky="ew")
-        date_shell.grid_columnconfigure(1, weight=1)
+        date_entry = ctk.CTkEntry(date_card, textvariable=self.date_var, width=140, font=("Segoe UI", 13, "bold"))
+        date_entry.grid(row=0, column=1, padx=10, pady=15, sticky="ew")
+        date_entry.bind("<Button-1>", self.open_calendar) # Clicking entry opens calendar
 
-        date_icon = tk.Label(
-            date_shell,
-            text="📅",
-            bg="#1b2f52",
-            fg=self._colors["muted"],
-            font=("Segoe UI", 12),
-        )
-        date_icon.grid(row=0, column=0, padx=(10, 6), pady=6)
+        btn_today = ctk.CTkButton(date_card, text="Heute", width=60, command=self.set_today)
+        btn_today.grid(row=0, column=2, padx=(0, 10))
 
-        date_entry = ttk.Entry(
-            date_shell,
-            width=18,
-            textvariable=self.date_var,
-            style="Date.TEntry",
-            font=("Segoe UI", 12, "bold"),
-        )
-        date_entry.grid(row=0, column=1, padx=(0, 12), pady=6, sticky="ew")
-        date_entry.bind("<Button-1>", self.open_calendar)
-        date_icon.bind("<Button-1>", self.open_calendar)
-
-        ttk.Button(date_frame, text="Heute", style="ToolbarRounded.TButton", command=self.set_today).grid(row=0, column=2, padx=(0, 8))
-        ttk.Button(date_frame, text="Gestern", style="ToolbarRounded.TButton", command=self.set_yesterday).grid(row=0, column=3, padx=(0, 4))
+        btn_prev = ctk.CTkButton(date_card, text="◀", width=40, command=self.set_yesterday)
+        btn_prev.grid(row=0, column=3, padx=(0, 15))
 
         self.day_display_var = tk.StringVar()
-        ttk.Label(date_frame, textvariable=self.day_display_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
-        date_info = ttk.Label(date_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        date_info.grid(row=1, column=3, padx=(8, 0), sticky="e")
-        Tooltip(
-            date_info,
-            "Feld anklicken öffnet den Kalender – oder per Heute/Gestern springen.",
-            bg=self._colors["card"],
-            fg=self._colors["muted"],
-        )
+        ctk.CTkLabel(date_card, textvariable=self.day_display_var, font=("Segoe UI", 12, "bold"), text_color="gray").grid(row=1, column=0, columnspan=4, sticky="w", padx=15, pady=(0, 15))
 
-        preset_bar = ttk.Frame(form_card, style="Card.TFrame")
-        preset_bar.grid(row=3, column=0, sticky="ew", pady=(0, 12))
-        preset_bar.grid_columnconfigure(1, weight=1)
-        preset_label = ttk.Label(preset_bar, text="Vorlage:", style="Card.TLabel")
-        preset_label.grid(row=0, column=0, sticky="w")
-        self.preset_combo = ttk.Combobox(preset_bar, textvariable=self.preset_var, width=22, state="readonly")
-        self.preset_combo.grid(row=0, column=1, padx=(8, 8), sticky="ew")
-        self.preset_combo.bind("<<ComboboxSelected>>", lambda _evt: self.apply_selected_preset())
-        ttk.Button(preset_bar, text="Vorlagen verwalten", style="ToolbarRounded.TButton", command=self.open_preset_manager).grid(row=0, column=2, padx=(8, 0), sticky="e")
-        preset_info = ttk.Label(preset_bar, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        preset_info.grid(row=0, column=3, padx=(8, 0))
-        Tooltip(
-            preset_info,
-            "Vorlagen füllen PSP und Leistungsart automatisch aus.",
-            bg=self._colors["card"],
-            fg=self._colors["muted"],
-        )
+        # Preset Selection
+        preset_card = ctk.CTkFrame(form_frame)
+        preset_card.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 15))
+        preset_card.grid_columnconfigure(1, weight=1)
 
-        fields_frame = ttk.Frame(form_card, style="Card.TFrame")
-        fields_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
-        fields_frame.grid_columnconfigure(0, weight=1)
-        fields_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(preset_card, text="Vorlage:").grid(row=0, column=0, padx=15, pady=15, sticky="w")
 
-        self.psp_combo = self._build_combobox(
-            fields_frame,
-            "PSP (optional):",
-            self.psp_var,
-            column=0,
-            tooltip_text="Optionaler PSP-Code, um deine Buchung schneller zuzuordnen.",
-        )
-        self.type_combo = self._build_combobox(
-            fields_frame,
-            "Leistungsart:",
-            self.type_var,
-            column=1,
-            tooltip_text="Pflichtfeld für den abrechnungsrelevanten Leistungs-Typ.",
-        )
+        self.preset_combo = ctk.CTkComboBox(preset_card, variable=self.preset_var, command=self.apply_selected_preset)
+        self.preset_combo.grid(row=0, column=1, padx=10, sticky="ew")
 
-        self.time_frame = ttk.Frame(form_card, style="Card.TFrame")
-        self.time_frame.grid(row=5, column=0, sticky="ew")
-        self.time_frame.grid_columnconfigure(0, weight=1)
+        ctk.CTkButton(preset_card, text="Verwalten", width=80, command=self.open_preset_manager).grid(row=0, column=2, padx=(0, 15))
 
-        self.range_frame = ttk.Frame(self.time_frame, style="Card.TFrame")
-        self.range_frame.grid(row=0, column=0, sticky="w")
-        start_label = ttk.Label(self.range_frame, text="Start:", style="Card.TLabel")
-        start_label.grid(row=0, column=0, sticky=tk.W)
-        self.start_combo = self._build_time_entry(self.range_frame, self.start_var, row=1, column=0)
+        # Fields (PSP, Type, Time)
+        fields_card = ctk.CTkFrame(form_frame)
+        fields_card.grid(row=4, column=0, sticky="ew", padx=20, pady=(0, 15))
+        fields_card.grid_columnconfigure((0, 1), weight=1)
 
-        end_label = ttk.Label(self.range_frame, text="Ende:", style="Card.TLabel")
-        end_label.grid(row=0, column=1, sticky=tk.W, padx=(8, 0))
-        self.end_combo = self._build_time_entry(self.range_frame, self.end_var, row=1, column=1, pad_x=8)
-        range_info = ttk.Label(self.range_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        range_info.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        Tooltip(
-            range_info,
-            "Nutze Start/Ende für klassische Zeitspannen. Prüft automatisch, dass Ende nach Start liegt.",
-            bg=self._colors["card"],
-            fg=self._colors["muted"],
-        )
+        ctk.CTkLabel(fields_card, text="PSP (optional):").grid(row=0, column=0, padx=15, pady=(15, 0), sticky="w")
+        ctk.CTkLabel(fields_card, text="Leistungsart:").grid(row=0, column=1, padx=10, pady=(15, 0), sticky="w")
 
-        self.duration_frame = ttk.Frame(self.time_frame, style="Card.TFrame")
-        hours_label = ttk.Label(self.duration_frame, text="Stunden:", style="Card.TLabel")
-        hours_label.grid(row=0, column=0, sticky=tk.W)
-        self.hours_entry = ttk.Entry(self.duration_frame, width=12, textvariable=self.hours_var)
-        self.hours_entry.grid(row=1, column=0, padx=(0, 12))
-        hours_info = ttk.Label(self.duration_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        hours_info.grid(row=0, column=1, sticky="w", padx=(6, 0))
-        Tooltip(
-            hours_info,
-            "Trage hier direkt Stunden ein, wenn du keine Start/Ende Zeiten verwenden willst.",
-            bg=self._colors["card"],
-            fg=self._colors["muted"],
-        )
+        self.psp_combo = ctk.CTkComboBox(fields_card, variable=self.psp_var)
+        self.psp_combo.grid(row=1, column=0, padx=15, pady=(5, 15), sticky="ew")
 
-        self.mode_btn = ttk.Button(self.time_frame, text="Zu Stunden wechseln", style="ToolbarRounded.TButton", command=self.toggle_time_mode)
-        self.mode_btn.grid(row=0, column=1, rowspan=2, padx=(10, 0), sticky="e")
+        self.type_combo = ctk.CTkComboBox(fields_card, variable=self.type_var)
+        self.type_combo.grid(row=1, column=1, padx=10, pady=(5, 15), sticky="ew")
 
-        desc_frame = ttk.Frame(form_card, style="Card.TFrame")
-        desc_frame.grid(row=6, column=0, sticky="ew", pady=(12, 4))
-        desc_label = ttk.Label(desc_frame, text="Kurzbeschreibung:", style="Card.TLabel")
-        desc_label.grid(row=0, column=0, sticky="w")
-        desc_info = ttk.Label(desc_frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-        desc_info.grid(row=0, column=1, sticky="w", padx=(6, 0))
-        Tooltip(
-            desc_info,
-            "Kurzer Text für die gebuchte Tätigkeit. Häufige Einträge tauchen als Vorschlag auf.",
-            bg=self._colors["card"],
-            fg=self._colors["muted"],
-        )
-        self.desc_combo = ttk.Combobox(desc_frame, textvariable=self.desc_var)
-        self.desc_combo.grid(row=1, column=0, sticky="ew")
+        # Time Section
+        time_card = ctk.CTkFrame(form_frame)
+        time_card.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 15))
+        time_card.grid_columnconfigure(0, weight=1)
 
-        btn_frame = ttk.Frame(form_card, style="Card.TFrame")
-        btn_frame.grid(row=7, column=0, sticky="ew", pady=(12, 0))
-        btn_frame.grid_columnconfigure(0, weight=1)
-        btn_frame.grid_columnconfigure(1, weight=1)
-        btn_frame.grid_columnconfigure(2, weight=1)
-        btn_frame.grid_columnconfigure(3, weight=1)
+        self.range_frame = ctk.CTkFrame(time_card, fg_color="transparent")
+        self.range_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        self.add_btn = ttk.Button(btn_frame, text="Eintrag hinzufügen", style="AccentRounded.TButton", command=self.add_entry)
-        self.add_btn.grid(row=0, column=0, sticky="ew")
+        ctk.CTkLabel(self.range_frame, text="Start:").grid(row=0, column=0, sticky="w")
+        self._build_time_picker_control(self.range_frame, self.start_var, 0, 1)
 
-        self.update_btn = ttk.Button(btn_frame, text="Eintrag aktualisieren", style="AccentRounded.TButton", command=self.update_entry)
-        self.update_btn.grid(row=0, column=1, sticky="ew", padx=(8, 0))
-        self.update_btn.grid_remove()
+        ctk.CTkLabel(self.range_frame, text="Ende:").grid(row=0, column=2, padx=(15, 0), sticky="w")
+        self._build_time_picker_control(self.range_frame, self.end_var, 0, 3)
 
-        ttk.Button(btn_frame, text="Felder leeren", style="ToolbarRounded.TButton", command=self.reset_form).grid(row=0, column=2, sticky="ew", padx=(8, 0))
-        ttk.Button(btn_frame, text="Löschen", style="DangerRounded.TButton", command=self.delete_entry).grid(row=0, column=3, sticky="ew", padx=(8, 0))
+        self.duration_frame = ctk.CTkFrame(time_card, fg_color="transparent")
+        # Hidden by default in range mode
 
-        self.timer_label = ttk.Label(btn_frame, text="", style="Card.TLabel", font=("Segoe UI", 12, "bold"), foreground="#8d7bff")
-        self.timer_label.grid(row=0, column=4, padx=(8, 0))
+        ctk.CTkLabel(self.duration_frame, text="Stunden:").grid(row=0, column=0, sticky="w")
+        self.hours_entry = ctk.CTkEntry(self.duration_frame, textvariable=self.hours_var, width=100)
+        self.hours_entry.grid(row=0, column=1, padx=10)
 
-        self.timer_btn = ttk.Button(btn_frame, text="Timer starten", style="AccentRounded.TButton", command=self.toggle_timer)
-        self.timer_btn.grid(row=0, column=5, sticky="ew", padx=(8, 0))
+        self.mode_btn = ctk.CTkButton(time_card, text="Modus: Stunden", width=120, fg_color="transparent", border_width=1, command=self.toggle_time_mode)
+        self.mode_btn.grid(row=0, column=1, padx=15, pady=15)
 
-        self.abort_btn = ttk.Button(btn_frame, text="✖", style="Ghost.TButton", width=3, command=self.abort_timer)
-        self.abort_btn.grid(row=0, column=6, padx=(4, 0))
+        # Description
+        desc_card = ctk.CTkFrame(form_frame)
+        desc_card.grid(row=6, column=0, sticky="ew", padx=20, pady=(0, 15))
+        desc_card.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(desc_card, text="Beschreibung:").grid(row=0, column=0, padx=15, pady=(15, 0), sticky="w")
+        self.desc_combo = ctk.CTkComboBox(desc_card, variable=self.desc_var)
+        self.desc_combo.grid(row=1, column=0, padx=15, pady=(5, 15), sticky="ew")
+
+        # Action Buttons
+        btn_card = ctk.CTkFrame(form_frame, fg_color="transparent")
+        btn_card.grid(row=7, column=0, sticky="ew", padx=20, pady=(0, 20))
+        btn_card.grid_columnconfigure((0, 1), weight=1)
+
+        self.add_btn = ctk.CTkButton(btn_card, text="Eintrag hinzufügen", height=40, font=("Segoe UI", 13, "bold"), command=self.add_entry)
+        self.add_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+
+        self.update_btn = ctk.CTkButton(btn_card, text="Aktualisieren", height=40, font=("Segoe UI", 13, "bold"), command=self.update_entry)
+        self.update_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.update_btn.grid_remove() # Hidden initially
+
+        ctk.CTkButton(btn_card, text="Neu", width=80, height=40, fg_color="transparent", border_width=1, command=self.reset_form).grid(row=0, column=1, sticky="e")
+        ctk.CTkButton(btn_card, text="Löschen", width=80, height=40, fg_color="#ef4444", hover_color="#dc2626", command=self.delete_entry).grid(row=0, column=2, padx=(10, 0), sticky="e")
+
+        # Timer Area
+        timer_frame = ctk.CTkFrame(form_frame)
+        timer_frame.grid(row=8, column=0, sticky="ew", padx=20, pady=(0, 20))
+        timer_frame.grid_columnconfigure(1, weight=1)
+
+        self.timer_btn = ctk.CTkButton(timer_frame, text="Timer starten", command=self.toggle_timer)
+        self.timer_btn.grid(row=0, column=0, padx=15, pady=15)
+
+        self.timer_label = ctk.CTkLabel(timer_frame, text="", font=("Segoe UI", 16, "bold"), text_color="#3b8ed0")
+        self.timer_label.grid(row=0, column=1, padx=15)
+
+        self.abort_btn = ctk.CTkButton(timer_frame, text="✕", width=40, fg_color="transparent", border_width=1, text_color="gray", command=self.abort_timer)
+        self.abort_btn.grid(row=0, column=2, padx=15)
         self.abort_btn.grid_remove()
 
-        list_card = self._card(main_frame)
-        list_card.grid(row=0, column=1, sticky="nsew")
-        list_card.grid_columnconfigure(0, weight=1)
-        list_card.grid_rowconfigure(2, weight=1)
+        # Right Column: List
+        list_frame = ctk.CTkFrame(self)
+        list_frame.grid(row=0, column=1, padx=(0, 20), pady=20, sticky="nsew")
+        list_frame.grid_columnconfigure(0, weight=1)
+        list_frame.grid_rowconfigure(2, weight=1)
 
-        ttk.Label(list_card, text="Übersicht", style="Title.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(list_card, text="Gruppierte Einträge und Summen.", style="Subtle.TLabel").grid(row=1, column=0, sticky="w", pady=(2, 10))
+        ctk.CTkLabel(list_frame, text="Übersicht", font=("Segoe UI", 24, "bold"), text_color=("gray10", "gray90")).grid(row=0, column=0, sticky="w", padx=20, pady=(20, 5))
+        ctk.CTkLabel(list_frame, text="Deine Einträge für den Tag.", text_color="gray").grid(row=1, column=0, sticky="w", padx=20, pady=(0, 15))
 
-        tree_frame = ttk.Frame(list_card, style="Card.TFrame")
-        tree_frame.grid(row=2, column=0, sticky="nsew")
-        tree_frame.grid_columnconfigure(0, weight=1)
-        tree_frame.grid_rowconfigure(0, weight=1)
+        # Treeview in a CTk container
+        tree_container = ctk.CTkFrame(list_frame, fg_color="transparent")
+        tree_container.grid(row=2, column=0, sticky="nsew", padx=20)
+        tree_container.grid_columnconfigure(0, weight=1)
+        tree_container.grid_rowconfigure(0, weight=1)
 
         columns = ("psp", "type", "desc", "hours")
-        self.tree = ttk.Treeview(
-            tree_frame,
-            columns=columns,
-            show="tree headings",
-            height=17,
-            style="Modern.Treeview",
-        )
+        self.tree = ttk.Treeview(tree_container, columns=columns, show="tree headings", style="Treeview")
         self.tree.heading("#0", text="")
-        self.tree.column("#0", width=24, anchor=tk.W, minwidth=24, stretch=False)
+        self.tree.column("#0", width=20, stretch=False)
+        self.tree.heading("psp", text="PSP")
+        self.tree.heading("type", text="Leistungsart")
+        self.tree.heading("desc", text="Beschreibung")
+        self.tree.heading("hours", text="Stunden")
 
-        headings = {
-            "psp": "PSP",
-            "type": "Leistungsart",
-            "desc": "Beschreibung",
-            "hours": "Stunden",
-        }
-        for col, title in headings.items():
-            self.tree.heading(col, text=title)
-            width = 200
-            minwidth = 150
-            if col == "hours":
-                width = 210
-                minwidth = 190
-            elif col == "desc":
-                width = 360
-                minwidth = 260
-            self.tree.column(col, width=width, anchor=tk.CENTER, minwidth=minwidth, stretch=True)
+        self.tree.column("psp", width=100)
+        self.tree.column("type", width=150)
+        self.tree.column("desc", width=200)
+        self.tree.column("hours", width=80, anchor="e")
 
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
-        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
+        vsb = ttk.Scrollbar(tree_container, orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(tree_container, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
         self.tree.grid(row=0, column=0, sticky="nsew")
         vsb.grid(row=0, column=1, sticky="ns")
         hsb.grid(row=1, column=0, sticky="ew")
 
-        totals_frame = ttk.Frame(list_card, style="Card.TFrame")
-        totals_frame.grid(row=3, column=0, sticky="ew", pady=(12, 0))
-        totals_frame.grid_columnconfigure(0, weight=1)
+        # Totals
+        totals_frame = ctk.CTkFrame(list_frame)
+        totals_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=20)
         totals_frame.grid_columnconfigure(1, weight=1)
 
         self.total_var = tk.StringVar(value="Summe Tag: 0.00 h")
-        ttk.Label(totals_frame, textvariable=self.total_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(totals_frame, textvariable=self.total_var, font=("Segoe UI", 14, "bold")).pack(side=tk.LEFT, padx=20, pady=15)
 
         self.week_total_var = tk.StringVar(value="Woche: 0.00 h")
-        ttk.Label(totals_frame, textvariable=self.week_total_var, style="Card.TLabel", font=("Segoe UI", 12, "bold")).grid(row=0, column=1, sticky="e")
+        ctk.CTkLabel(totals_frame, textvariable=self.week_total_var, font=("Segoe UI", 14, "bold"), text_color="gray").pack(side=tk.RIGHT, padx=20, pady=15)
 
-        self.tree.tag_configure("group", background=self._colors["card_alt"], foreground="#ffffff", font=("Segoe UI", 10, "bold"))
-
+        # Tree bindings
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
         self.tree.bind("<Control-c>", self.copy_selection)
         self.tree.bind("<Control-C>", self.copy_selection)
 
+        # Styling tags
+        self.tree.tag_configure("group", background="#333333", foreground="white", font=("Segoe UI", 11, "bold"))
+
+        # Initialization
         self.update_combobox_values()
-        self.desc_combo["values"] = []
         self._apply_time_mode()
 
-    def _build_combobox(self, parent, label, variable, column=None, tooltip_text=None):
-        frame = ttk.Frame(parent, style="Card.TFrame")
-        if column is None:
-            frame.pack(side=tk.LEFT, padx=(0, 8))
-        else:
-            frame.grid(row=0, column=column, sticky="ew", padx=(0, 10))
-            frame.grid_columnconfigure(0, weight=1)
-        ttk.Label(frame, text=label, style="Card.TLabel").grid(row=0, column=0, sticky="w")
-        if tooltip_text:
-            info = ttk.Label(frame, text="ⓘ", style="Card.TLabel", cursor="question_arrow")
-            info.grid(row=0, column=1, sticky="w", padx=(6, 0))
-            Tooltip(info, tooltip_text, bg=self._colors["card"], fg=self._colors["muted"])
-        combo = ttk.Combobox(frame, textvariable=variable, width=20)
-        combo.grid(row=1, column=0, sticky="ew", pady=(4, 0))
-        return combo
+    def _build_time_picker_control(self, parent, variable, row, col):
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        frame.grid(row=row, column=col, padx=5, sticky="ew")
 
-    def _build_time_entry(self, parent, variable, row=0, column=0, pad_x=0):
-        combo = ttk.Combobox(
-            parent,
-            width=12,
-            textvariable=variable,
-            values=self._time_options(),
+        entry = ctk.CTkEntry(frame, textvariable=variable, width=80)
+        entry.pack(side=tk.LEFT)
+
+        btn = ctk.CTkButton(
+            frame,
+            text="⏱",
+            width=30,
+            fg_color="transparent",
+            border_width=1,
+            command=lambda: self.open_time_picker(variable)
         )
-        combo.configure(postcommand=lambda c=combo: self._scroll_time_to_current(c))
-        combo.bind("<Button-1>", self.on_time_click)
-        combo.grid(row=row, column=column, padx=(pad_x, 0))
-        return combo
+        btn.pack(side=tk.LEFT, padx=(2, 0))
 
-    def on_time_click(self, event):
-        try:
-            element = event.widget.identify(event.x, event.y)
-            # Only auto-fill if clicking the text entry part, not the arrow button
-            if element == "textarea" or (element and "textarea" in str(element)):
-                now = datetime.now()
-                # Round to nearest 15 minutes
-                minutes = now.minute
-                remainder = minutes % 15
-                if remainder < 8:
-                    rounded_min = minutes - remainder
-                else:
-                    rounded_min = minutes + (15 - remainder)
-
-                if rounded_min == 60:
-                    now = now.replace(minute=0) + timedelta(hours=1)
-                else:
-                    now = now.replace(minute=rounded_min)
-
-                time_str = now.strftime(TIME_FORMAT)
-                # Use after_idle to avoid conflict with default focus/click behavior
-                self.after_idle(lambda: event.widget.set(time_str))
-        except Exception:
-            pass
-
-    def _scroll_time_to_current(self, combo):
-        values = combo["values"]
-        if not values:
-            return
-        target_value = combo.get().strip()
-
-        # If current text is in values, we are good - select it
-        if target_value in values:
-            try:
-                combo.current(values.index(target_value))
-            except ValueError:
-                pass
+    def open_time_picker(self, variable):
+        if self._calendar_window is not None and self._calendar_window.winfo_exists():
+            self._calendar_window.lift()
             return
 
-        # If text is empty or not in list, find closest to NOW
-        now = datetime.now()
-        # Convert now to minutes for comparison
-        now_mins = now.hour * 60 + now.minute
+        def on_select(time_str):
+            variable.set(time_str)
+            self._calendar_window = None
 
-        closest_index = -1
-        min_diff = float('inf')
-
-        for idx, val in enumerate(values):
-            try:
-                dt = datetime.strptime(val, TIME_FORMAT)
-                val_mins = dt.hour * 60 + dt.minute
-                diff = abs(val_mins - now_mins)
-                if diff < min_diff:
-                    min_diff = diff
-                    closest_index = idx
-            except ValueError:
-                continue
-
-        if closest_index != -1:
-            try:
-                combo.current(closest_index)
-            except ValueError:
-                pass
-
-    @staticmethod
-    def _time_options():
-        times = []
-        current = datetime.strptime("00:00", TIME_FORMAT)
-        end_time = datetime.strptime("23:45", TIME_FORMAT)
-        while current <= end_time:
-            times.append(current.strftime(TIME_FORMAT))
-            current += timedelta(minutes=15)
-        return times
+        self._calendar_window = TimePicker(self, on_select, self.icon_image)
 
     def _set_default_times(self):
         now_str = datetime.now().strftime(TIME_FORMAT)
@@ -1163,14 +755,10 @@ class TimeTrackerApp(tk.Tk):
         picker = CalendarPicker(self, current, self.set_selected_date, self.icon_image)
         self._calendar_window = picker
         picker.protocol("WM_DELETE_WINDOW", self._close_calendar)
-        picker.bind("<Destroy>", self._clear_calendar_ref)
 
     def _close_calendar(self):
         if self._calendar_window is not None and self._calendar_window.winfo_exists():
             self._calendar_window.destroy()
-        self._calendar_window = None
-
-    def _clear_calendar_ref(self, _event=None):
         self._calendar_window = None
 
     def set_selected_date(self, selected):
@@ -1190,8 +778,8 @@ class TimeTrackerApp(tk.Tk):
             return date.today()
 
     def update_combobox_values(self):
-        self.psp_combo["values"] = collect_recent_values(self.entries, "psp")
-        self.type_combo["values"] = collect_recent_values(self.entries, "type")
+        self.psp_combo.configure(values=collect_recent_values(self.entries, "psp"))
+        self.type_combo.configure(values=collect_recent_values(self.entries, "type"))
         self._update_desc_values()
         self._update_preset_values()
 
@@ -1203,7 +791,9 @@ class TimeTrackerApp(tk.Tk):
             desc = entry.get("desc", "")
             if desc and desc not in desc_values:
                 desc_values.append(desc)
-        self.desc_combo["values"] = desc_values
+        if not desc_values:
+            desc_values = [""] # Empty list can cause issues in older ctk versions?
+        self.desc_combo.configure(values=desc_values)
 
     def _preset_names(self):
         names = []
@@ -1215,15 +805,15 @@ class TimeTrackerApp(tk.Tk):
 
     def _update_preset_values(self):
         names = self._preset_names()
-        self.preset_combo["values"] = names
+        self.preset_combo.configure(values=names)
         current = self.preset_var.get()
         if current and current not in names:
             self.preset_var.set("")
 
-    def apply_selected_preset(self):
-        selected_name = self.preset_var.get()
+    def apply_selected_preset(self, choice):
+        # Callback for CTkComboBox gives the choice directly
         for preset in self.presets:
-            if preset.get("name") == selected_name:
+            if preset.get("name") == choice:
                 if preset.get("psp"):
                     self.psp_var.set(preset.get("psp", ""))
                 if preset.get("type"):
@@ -1359,7 +949,7 @@ class TimeTrackerApp(tk.Tk):
                 iid=parent_id,
                 text="",
                 values=(psp, ltype, desc, f"{group_hours:.2f}"),
-                open=False,
+                open=True, # Open by default in desktop view
                 tags=("group",),
             )
             total_hours += group_hours
@@ -1378,7 +968,7 @@ class TimeTrackerApp(tk.Tk):
                         f"{hours:.2f}",
                     ),
                 )
-        self._auto_size_columns()
+
         self.total_var.set(f"Summe Tag: {total_hours:.2f} h")
 
         week_hours = self._calculate_week_hours(day_key)
@@ -1456,8 +1046,6 @@ class TimeTrackerApp(tk.Tk):
             *day_hours,
         ]
 
-        # Add a trailing newline so SAP treats the clipboard content as a full row
-        # and advances through all columns instead of stopping after the first field.
         text = "\t".join(columns) + "\r\n"
 
         self.clipboard_clear()
@@ -1502,20 +1090,6 @@ class TimeTrackerApp(tk.Tk):
         weekday = weekday_names[day_date.weekday()]
         formatted = day_date.strftime("%d.%m.%Y")
         self.day_display_var.set(f"{weekday} {formatted}")
-
-    def _auto_size_columns(self):
-        font = tkfont.nametofont("TkDefaultFont")
-        padding = 30
-        for col in self.tree["columns"]:
-            heading_text = self.tree.heading(col).get("text", "")
-            max_width = font.measure(heading_text)
-            stack = list(self.tree.get_children(""))
-            while stack:
-                item = stack.pop()
-                cell_text = self.tree.set(item, col)
-                max_width = max(max_width, font.measure(cell_text))
-                stack.extend(self.tree.get_children(item))
-            self.tree.column(col, width=max(80, min(max_width + padding, 400)))
 
     def _group_entries(self, entries):
         groups = {}
@@ -1576,57 +1150,55 @@ class TimeTrackerApp(tk.Tk):
         new_mode = "duration" if self.time_mode.get() == "range" else "range"
         self.time_mode.set(new_mode)
         if new_mode == "duration":
-            self.hours_var.set(self.hours_var.get() or "1.0")
+            self.range_frame.grid_remove()
+            self.duration_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+            self.mode_btn.configure(text="Modus: Zeitspanne")
         else:
-            if not self.start_var.get():
-                self._set_default_times()
+            self.duration_frame.grid_remove()
+            self.range_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+            self.hours_var.set("")
+            self.mode_btn.configure(text="Modus: Stunden")
+
         self._apply_time_mode()
 
     def _apply_time_mode(self):
-        if self.time_mode.get() == "duration":
-            self.range_frame.grid_remove()
-            self.duration_frame.grid(row=0, column=0, sticky="w")
-            self.hours_entry.configure(state="normal")
-            self.mode_btn.configure(text="Zu Start/Ende wechseln")
-        else:
-            self.duration_frame.grid_remove()
-            self.range_frame.grid(row=0, column=0, sticky="w")
-            self.hours_var.set("")
-            self.hours_entry.configure(state="disabled")
-            self.mode_btn.configure(text="Zu Stunden wechseln")
+        # Already handled by toggle logic, just clearing data if needed
+        if self.time_mode.get() == "range":
+             if not self.start_var.get():
+                self._set_default_times()
 
     def toggle_timer(self):
         if self.timer_start is None:
             # Start timer
             self.timer_start = datetime.now()
             self.start_var.set(self.timer_start.strftime(TIME_FORMAT))
-            self.timer_btn.configure(text="Timer beenden", style="DangerRounded.TButton")
+            self.timer_btn.configure(text="Timer beenden", fg_color="#ef4444", hover_color="#dc2626")
             self.time_mode.set("range")
             self._apply_time_mode()
-            self.abort_btn.grid(row=0, column=6, padx=(4, 0))
+            self.range_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+            self.duration_frame.grid_remove()
+            self.mode_btn.configure(text="Modus: Stunden")
+            self.abort_btn.grid(row=0, column=2, padx=15)
             self.update_timer_display()
         else:
             # Stop timer
             end_time = datetime.now()
             self.end_var.set(end_time.strftime(TIME_FORMAT))
 
-            # Try to prepare entry (validates fields)
             try:
                 self._prepare_entry()
             except ValueError as exc:
                 messagebox.showerror("Ungültige Eingabe", f"Eintrag konnte nicht gespeichert werden: {exc}\nBitte Felder korrigieren und erneut Timer beenden klicken.")
                 return
 
-            # If valid, add entry and reset
             self.add_entry()
             self.abort_timer()
 
     def abort_timer(self):
         self.timer_start = None
-        self.timer_btn.configure(text="Timer starten", style="AccentRounded.TButton")
+        self.timer_btn.configure(text="Timer starten", fg_color=["#3B8ED0", "#1F6AA5"], hover_color=["#36719F", "#144870"]) # Default ctk blue
         self.abort_btn.grid_remove()
         self.timer_label.configure(text="")
-        # Clear start time if we aborted
         self.start_var.set("")
 
     def update_timer_display(self):
@@ -1635,7 +1207,6 @@ class TimeTrackerApp(tk.Tk):
 
         now = datetime.now()
         diff = now - self.timer_start
-        # Format as HH:MM:SS
         total_seconds = int(diff.total_seconds())
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
@@ -1647,6 +1218,7 @@ class TimeTrackerApp(tk.Tk):
     def _load_icon(self):
         try:
             self.iconbitmap(str(ICON_FILE))
+            return None # iconbitmap doesn't return an image object
         except Exception:
             return None
 
@@ -1658,4 +1230,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
