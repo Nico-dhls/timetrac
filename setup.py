@@ -1,38 +1,46 @@
 import sys
 from cx_Freeze import setup, Executable
 
-# Optionen für den Build
+# --- WICHTIG: UUID Generieren ---
+# Damit Windows erkennt, dass eine neue Version ein Update ist (und nicht eine zweite App),
+# braucht man eine feste ID. Ändere diesen Wert NICHT, wenn du Updates veröffentlichst.
+# Du kannst dir online eine UUID generieren oder diese hier nutzen:
+upgrade_code = "{93789642-1234-5678-ABCD-1234567890AB}" 
+
 build_exe_options = {
-    "packages": ["os"],  # Hier weitere Pakete einfügen, falls nötig (z.B. "pandas")
+    "packages": ["os"], 
     "excludes": [],
-    "include_files": ["timetable_icon.ico"] # Deine Dateien hier
+    "include_files": ["timetable_icon.ico"] 
 }
 
-# WICHTIG: Damit keine Admin-Rechte nötig sind
 bdist_msi_options = {
-    "initial_target_dir": r"[AppDataFolder]\TimeTrac", # Installiert nach AppData
+    "initial_target_dir": r"[AppDataFolder]\TimeTrac", # Installiert lokal (%AppData%)
     "add_to_path": False,
     "install_icon": "timetable_icon.ico",
+    "upgrade_code": upgrade_code,
 }
 
 base = None
 if sys.platform == "win32":
-    base = "Win32GUI" # Nutze "Win32GUI" für GUI-Apps (keine Konsole), sonst None
+    base = "Win32GUI"
 
 setup(
     name="TimeTrac",
-    version="1.2.5", # Hier Version anpassen oder dynamisch laden
+    # Dieser Platzhalter "VERSION_PLACEHOLDER" wird gleich von GitHub Actions ersetzt
+    version="VERSION_PLACEHOLDER", 
     description="TimeTrac Zeiterfassung",
+    author="Nico Dahlhaus", # Taucht in den Datei-Eigenschaften auf
     options={
         "build_exe": build_exe_options,
-        "bdist_msi": bdist_msi_options, # MSI Optionen aktivieren
+        "bdist_msi": bdist_msi_options,
     },
     executables=[Executable(
         "main.py",
         base=base,
         target_name="TimeTrac.exe",
         icon="timetable_icon.ico",
-        shortcut_name="TimeTrac", # Erstellt Desktop Shortcut
-        shortcut_dir="DesktopFolder"
+        shortcut_name="TimeTrac",
+        shortcut_dir="DesktopFolder",
+        copyright="© 2025 Nico Dahlhaus" # Taucht in den Datei-Eigenschaften auf
     )]
 )
