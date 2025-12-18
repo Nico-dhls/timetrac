@@ -52,6 +52,22 @@ DATE_FORMAT = "%Y-%m-%d"
 TIME_FORMAT = "%H:%M"
 MAX_RECENTS = 10
 
+THEME = {
+    "bg": "#0f172a",
+    "card": "#1e293b",
+    "card_light": "#334155",
+    "text": "#f8fafc",
+    "text_muted": "#94a3b8",
+    "border": "#334155",
+    "accent": "#38bdf8",
+    "accent_hover": "#0ea5e9",
+    "danger": "#ef4444",
+    "danger_hover": "#dc2626",
+    "success": "#22c55e",
+    "toolbar": "#475569",
+    "toolbar_hover": "#64748b",
+}
+
 
 def load_data():
     if DATA_FILE.exists():
@@ -123,57 +139,57 @@ class CalendarPicker(tk.Toplevel):
         self.title("Datum wählen")
         self.on_select = on_select
         self.selected = current_date
-        self.configure(padx=10, pady=10, bg="#1e1e1e")
+        self.configure(padx=10, pady=10, bg=THEME["card"])
         self.resizable(False, False)
         if icon_image is not None:
             self.iconphoto(False, icon_image)
 
         self._style = ttk.Style(self)
-        shared_bg = "#101a2e"
+        shared_bg = THEME["card"]
         self._style.configure("Calendar.TFrame", background=shared_bg)
         self._style.configure(
             "CalendarDay.TButton",
             padding=4,
-            background="#1b2b44",
-            foreground="#e6e8ef",
-            bordercolor="#1b2b44",
+            background=THEME["card_light"],
+            foreground=THEME["text"],
+            bordercolor=THEME["card_light"],
         )
         self._style.map(
             "CalendarDay.TButton",
-            background=[("active", "#233756")],
+            background=[("active", THEME["border"])],
             foreground=[("active", "#ffffff")],
         )
         self._style.configure(
             "CalendarHeader.TLabel",
             background=shared_bg,
-            foreground="#d4d4d4",
+            foreground=THEME["text_muted"],
         )
         self._style.configure(
             "CalendarMonth.TLabel",
             background=shared_bg,
-            foreground="#e6e8ef",
+            foreground=THEME["text"],
             font=("Segoe UI", 10, "bold"),
         )
         self._style.configure(
             "SelectedWeek.TButton",
-            background="#2a3f55",
-            foreground="#d4d4d4",
-            bordercolor="#2a3f55",
+            background=THEME["border"],
+            foreground=THEME["text_muted"],
+            bordercolor=THEME["border"],
         )
         self._style.configure(
             "SelectedWeek.TLabel",
-            background="#2a3f55",
-            foreground="#d4d4d4",
+            background=THEME["border"],
+            foreground=THEME["text_muted"],
         )
         self._style.configure(
             "SelectedDay.TButton",
-            background="#569cd6",
+            background=THEME["accent"],
             foreground="#ffffff",
-            bordercolor="#569cd6",
+            bordercolor=THEME["accent"],
         )
         self._style.map(
             "SelectedDay.TButton",
-            background=[("active", "#6cb8ff")],
+            background=[("active", THEME["accent_hover"])],
             foreground=[("active", "#ffffff")],
         )
 
@@ -275,7 +291,7 @@ class PresetManager(tk.Toplevel):
     def __init__(self, master, presets, on_save, icon_image=None):
         super().__init__(master)
         self.title("Vorlagen verwalten")
-        self.configure(bg="#1e1e1e", padx=10, pady=10)
+        self.configure(bg=THEME["card"], padx=10, pady=10)
         self.resizable(False, False)
         self.transient(master)
         if icon_image is not None:
@@ -473,106 +489,106 @@ class TimeTrackerApp(tk.Tk):
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        base_bg = "#070d1c"
-        card_bg = "#0e162b"
-        field_bg = "#111c33"
-        focus_bg = "#1a2d4c"
-        accent = "#8d7bff"
-        accent_active = "#4ee0ff"
-        fg = "#eef2ff"
-        muted = "#9fb6de"
-        border = "#1a2742"
-        card_alt = "#122041"
-        accent_soft = "#355ca3"
+
         self._colors = {
-            "field_bg": field_bg,
-            "focus_bg": focus_bg,
-            "base": base_bg,
-            "card": card_bg,
-            "accent": accent,
-            "accent_active": accent_active,
-            "muted": muted,
-            "border": border,
-            "card_alt": card_alt,
-            "accent_soft": accent_soft,
+            "field_bg": THEME["card_light"],
+            "focus_bg": THEME["border"],
+            "base": THEME["bg"],
+            "card": THEME["card"],
+            "accent": THEME["accent"],
+            "accent_active": THEME["accent_hover"],
+            "muted": THEME["text_muted"],
+            "border": THEME["border"],
+            "card_alt": THEME["card_light"],
+            "accent_soft": THEME["border"],
         }
+
+        fg = THEME["text"]
+        bg = THEME["bg"]
+        card = THEME["card"]
+        card_light = THEME["card_light"]
+
         self._img_refs = []
-        self.option_add("*Font", ("Segoe UI", 11))
-        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 11))
-        self.option_add("*TCombobox*Listbox.background", field_bg)
+        # Update fonts to use full font spec string
+        self.option_add("*Font", "{Segoe UI} 11")
+        self.option_add("*TCombobox*Listbox.font", "{Segoe UI} 11")
+        self.option_add("*TCombobox*Listbox.background", card_light)
         self.option_add("*TCombobox*Listbox.foreground", fg)
+
         style.configure(
             "TFrame",
-            background=base_bg,
+            background=bg,
         )
         style.configure(
             "Card.TFrame",
-            background=card_bg,
+            background=card,
         )
         style.configure(
             "TLabel",
-            background=base_bg,
+            background=bg,
             foreground=fg,
         )
         style.configure(
             "Card.TLabel",
-            background=card_bg,
+            background=card,
             foreground=fg,
         )
         style.configure(
             "Title.TLabel",
-            background=card_bg,
-            foreground="#ffffff",
+            background=card,
+            foreground=THEME["accent"],
             font=("Segoe UI", 16, "bold"),
         )
         style.configure(
             "Subtle.TLabel",
-            background=card_bg,
-            foreground=muted,
+            background=card,
+            foreground=THEME["text_muted"],
             font=("Segoe UI", 10),
         )
         style.configure(
             "TButton",
-            background=card_alt,
+            background=card_light,
             foreground=fg,
             padding=6,
             borderwidth=0,
         )
         style.map(
             "TButton",
-            background=[("active", focus_bg)],
+            background=[("active", THEME["border"])],
             foreground=[("active", "#ffffff")],
         )
         style.configure(
             "Ghost.TButton",
-            background=card_bg,
+            background=card,
             foreground=fg,
             padding=5,
             borderwidth=0,
         )
         style.map(
             "Ghost.TButton",
-            background=[("active", focus_bg)],
+            background=[("active", card_light)],
             foreground=[("active", "#ffffff")],
         )
         style.configure(
             "Accent.TButton",
-            background=accent,
+            background=THEME["accent"],
             foreground="#ffffff",
             padding=6,
             borderwidth=0,
         )
         style.map(
             "Accent.TButton",
-            background=[("active", accent_active)],
+            background=[("active", THEME["accent_hover"])],
             foreground=[("active", "#ffffff")],
         )
-        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=9)
-        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=9)
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=7)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=7)
-        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=7)
-        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=7)
+
+        toolbar_normal = self._rounded_rect_image(THEME["toolbar"], card, radius=9)
+        toolbar_hover = self._rounded_rect_image(THEME["toolbar_hover"], card, radius=9)
+        accent_img = self._rounded_rect_image(THEME["accent"], card, radius=7)
+        accent_hover = self._rounded_rect_image(THEME["accent_hover"], card, radius=7)
+        danger_img = self._rounded_rect_image(THEME["danger"], card, radius=7)
+        danger_hover = self._rounded_rect_image(THEME["danger_hover"], card, radius=7)
+
         self._img_refs.extend(
             [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
         )
@@ -612,9 +628,9 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "ToolbarRounded.TButton",
-            foreground="#f4f6fb",
+            foreground="#ffffff",
             padding=6,
-            background="#4b6fb0",
+            background=THEME["toolbar"],
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
         )
@@ -656,7 +672,7 @@ class TimeTrackerApp(tk.Tk):
             "AccentRounded.TButton",
             foreground="#ffffff",
             padding=6,
-            background=accent,
+            background=THEME["accent"],
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
         )
@@ -698,59 +714,59 @@ class TimeTrackerApp(tk.Tk):
             "DangerRounded.TButton",
             foreground="#ffffff",
             padding=6,
-            background="#d14b64",
+            background=THEME["danger"],
             borderwidth=0,
             font=("Segoe UI", 10, "bold"),
         )
         style.configure(
             "TEntry",
-            fieldbackground=field_bg,
+            fieldbackground=THEME["card_light"],
             foreground=fg,
             insertcolor=fg,
-            bordercolor=border,
-            lightcolor=accent,
-            darkcolor=border,
+            bordercolor=THEME["border"],
+            lightcolor=THEME["border"],
+            darkcolor=THEME["border"],
             padding=6,
         )
         style.map(
             "TEntry",
-            fieldbackground=[("focus", focus_bg)],
-            bordercolor=[("focus", accent)],
+            fieldbackground=[("focus", THEME["bg"])],
+            bordercolor=[("focus", THEME["accent"])],
             foreground=[("focus", fg)],
         )
         style.configure(
             "Date.TEntry",
-            fieldbackground="#20365d",
+            fieldbackground=THEME["card_light"],
             foreground=fg,
             insertcolor=fg,
-            bordercolor="#5f8bdc",
-            lightcolor="#5f8bdc",
-            darkcolor=border,
+            bordercolor=THEME["border"],
+            lightcolor=THEME["border"],
+            darkcolor=THEME["border"],
             padding=8,
         )
         style.map(
             "Date.TEntry",
-            fieldbackground=[("focus", "#294a7c")],
-            bordercolor=[("focus", accent_active)],
+            fieldbackground=[("focus", THEME["bg"])],
+            bordercolor=[("focus", THEME["accent_hover"])],
         )
         style.configure(
             "TCombobox",
-            fieldbackground=field_bg,
-            background=field_bg,
+            fieldbackground=THEME["card_light"],
+            background=THEME["card_light"],
             foreground=fg,
             arrowcolor="#f3f3f3",
-            bordercolor=border,
+            bordercolor=THEME["border"],
         )
         style.map(
             "TCombobox",
-            fieldbackground=[("readonly", field_bg), ("focus", focus_bg)],
-            background=[("focus", focus_bg)],
+            fieldbackground=[("readonly", THEME["card_light"]), ("focus", THEME["bg"])],
+            background=[("focus", THEME["bg"])],
             foreground=[("readonly", fg)],
         )
         style.configure(
             "Modern.Treeview",
-            background=card_bg,
-            fieldbackground=card_bg,
+            background=card,
+            fieldbackground=card,
             foreground=fg,
             rowheight=30,
             borderwidth=0,
@@ -758,12 +774,12 @@ class TimeTrackerApp(tk.Tk):
         )
         style.map(
             "Modern.Treeview",
-            background=[("selected", "#1f3d69")],
-            foreground=[("selected", "#ffffff")],
+            background=[("selected", THEME["card_light"])],
+            foreground=[("selected", THEME["accent"])],
         )
         style.configure(
             "Modern.Treeview.Heading",
-            background=card_alt,
+            background=THEME["card_light"],
             foreground=fg,
             relief="flat",
             font=("Segoe UI", 10, "bold"),
@@ -771,7 +787,7 @@ class TimeTrackerApp(tk.Tk):
         )
         style.map(
             "Modern.Treeview.Heading",
-            background=[("active", focus_bg)],
+            background=[("active", THEME["border"])],
             foreground=[("active", "#ffffff")],
         )
 
@@ -783,14 +799,14 @@ class TimeTrackerApp(tk.Tk):
             highlightthickness=1,
             highlightbackground=self._colors["accent_soft"],
             highlightcolor=self._colors["accent_soft"],
-            padx=16,
-            pady=16,
+            padx=20,
+            pady=20,
         )
         return frame
 
     def build_ui(self):
         main_frame = tk.Frame(self, bg=self._colors["base"])
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=24, pady=24)
         main_frame.grid_columnconfigure(0, weight=11, uniform="cards")
         main_frame.grid_columnconfigure(1, weight=17, uniform="cards")
 
