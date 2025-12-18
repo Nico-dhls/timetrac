@@ -239,7 +239,7 @@ class TimePicker(ctk.CTkToplevel):
     def __init__(self, master, on_select, icon_image=None):
         super().__init__(master)
         self.title("Zeit wählen")
-        self.geometry("340x400")
+        self.geometry("280x400")
         self.resizable(False, True)
         self.on_select = on_select
         self.transient(master)
@@ -250,30 +250,62 @@ class TimePicker(ctk.CTkToplevel):
         self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # 24 rows (hours), 4 cols (minutes)
-        for hour in range(24):
-            # Row label (Hour) - Optional, but cleaner if we just list times
-            # Let's list times in grid:
-            # 00:00 00:15 00:30 00:45
-            # ...
+        # Generate list: 00:00 - 23:00 + Current Time
+        time_slots = [f"{h:02d}:00" for h in range(24)]
 
-            # Row header
-            ctk.CTkLabel(self.scroll_frame, text=f"{hour:02d}:", width=30, font=("Segoe UI", 12, "bold"), text_color="gray").grid(row=hour, column=0, padx=(0, 5), pady=2)
+        now = datetime.now()
+        current_time_str = now.strftime(TIME_FORMAT)
+        if current_time_str not in time_slots:
+            time_slots.append(current_time_str)
+            time_slots.sort()
 
-            for i, minute in enumerate([0, 15, 30, 45]):
-                time_str = f"{hour:02d}:{minute:02d}"
-                btn = ctk.CTkButton(
-                    self.scroll_frame,
-                    text=time_str,
-                    width=60,
-                    height=28,
-                    fg_color="transparent",
-                    border_width=1,
-                    border_color=("#3E4551", "#3E4551"),
-                    text_color=("black", "white"),
-                    command=lambda t=time_str: self.select_time(t)
-                )
-                btn.grid(row=hour, column=i+1, padx=2, pady=2)
+        target_index = -1
+        try:
+            target_index = time_slots.index(current_time_str)
+        except ValueError:
+            pass
+
+        # Build Vertical List
+        for i, time_str in enumerate(time_slots):
+            is_current = (time_str == current_time_str)
+            fg_color = "transparent"
+            border_width = 1
+
+            if is_current:
+                fg_color = ("#3a7ebf", "#1f6aa5") # Highlight current
+                border_width = 0
+
+            btn = ctk.CTkButton(
+                self.scroll_frame,
+                text=time_str,
+                height=32,
+                fg_color=fg_color,
+                border_width=border_width,
+                border_color=("#3E4551", "#3E4551"),
+                text_color=("black", "white"),
+                command=lambda t=time_str: self.select_time(t)
+            )
+            btn.pack(fill=tk.X, pady=2)
+
+        # Scroll to previous hour relative to current time to provide context
+        if target_index != -1 and target_index > 0:
+            # Simple heuristic: scroll to index-1
+            # There are len(time_slots) items.
+            # CTkScrollableFrame uses the canvas yview_moveto.
+            # We need to wait for visibility/rendering to scroll accurately,
+            # but usually update_idletasks works.
+
+            # The canvas is private in CTkScrollableFrame usually accessed via _parent_canvas
+            # Index / Total
+            fraction = max(0, target_index - 1) / len(time_slots)
+            self.after(100, lambda: self._scroll_to(fraction))
+
+    def _scroll_to(self, fraction):
+        try:
+            if hasattr(self.scroll_frame, "_parent_canvas"):
+                self.scroll_frame._parent_canvas.yview_moveto(fraction)
+        except Exception:
+            pass
 
     def select_time(self, time_str):
         self.on_select(time_str)
