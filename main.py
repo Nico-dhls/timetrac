@@ -26,13 +26,6 @@ class Tooltip:
         x, y, cx, cy = self.widget.bbox("insert") or (0, 0, 0, 0)
         x = x + self.widget.winfo_rootx() + 10
         y = y + cy + self.widget.winfo_rooty() + 10
-        self.tipwindow = tw = ctk.CTkToplevel(self.widget)
-        tw.wm_overrideredirect(True)
-        # Tooltips don't look good with CTkToplevel default decoration, so we keep it simple
-        # But CTkToplevel might be overkill/slow. Standard tk.Toplevel is often better for tooltips
-        # even in a ctk app, to avoid the heavy window frame overhead.
-        # Let's revert to tk.Toplevel for the tooltip specifically but style it.
-        tw.destroy() # Destroy the ctk one
         self.tipwindow = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.configure(bg=self.bg)
@@ -222,9 +215,6 @@ class CalendarPicker(ctk.CTkToplevel):
                 if is_selected:
                     fg_color = ("#3a7ebf", "#1f6aa5") # Custom blueish
 
-                # Check for week selection highlight if needed?
-                # For now let's just highlight the specific day clearly.
-
                 btn = ctk.CTkButton(
                     self.days_frame,
                     text=str(day),
@@ -242,6 +232,51 @@ class CalendarPicker(ctk.CTkToplevel):
         selected_date = date(self.year_var.get(), self.month_var.get(), day)
         self.selected = selected_date
         self.on_select(selected_date)
+        self.destroy()
+
+
+class TimePicker(ctk.CTkToplevel):
+    def __init__(self, master, on_select, icon_image=None):
+        super().__init__(master)
+        self.title("Zeit wählen")
+        self.geometry("340x400")
+        self.resizable(False, True)
+        self.on_select = on_select
+        self.transient(master)
+        self.attributes("-topmost", True)
+        if icon_image is not None:
+            self.after(200, lambda: self.iconphoto(False, icon_image))
+
+        self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # 24 rows (hours), 4 cols (minutes)
+        for hour in range(24):
+            # Row label (Hour) - Optional, but cleaner if we just list times
+            # Let's list times in grid:
+            # 00:00 00:15 00:30 00:45
+            # ...
+
+            # Row header
+            ctk.CTkLabel(self.scroll_frame, text=f"{hour:02d}:", width=30, font=("Segoe UI", 12, "bold"), text_color="gray").grid(row=hour, column=0, padx=(0, 5), pady=2)
+
+            for i, minute in enumerate([0, 15, 30, 45]):
+                time_str = f"{hour:02d}:{minute:02d}"
+                btn = ctk.CTkButton(
+                    self.scroll_frame,
+                    text=time_str,
+                    width=60,
+                    height=28,
+                    fg_color="transparent",
+                    border_width=1,
+                    border_color=("#3E4551", "#3E4551"),
+                    text_color=("black", "white"),
+                    command=lambda t=time_str: self.select_time(t)
+                )
+                btn.grid(row=hour, column=i+1, padx=2, pady=2)
+
+    def select_time(self, time_str):
+        self.on_select(time_str)
         self.destroy()
 
 
@@ -531,10 +566,10 @@ class TimeTrackerApp(ctk.CTk):
         self.range_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         ctk.CTkLabel(self.range_frame, text="Start:").grid(row=0, column=0, sticky="w")
-        self.start_combo = self._build_time_combo(self.range_frame, self.start_var, 0, 1)
+        self._build_time_picker_control(self.range_frame, self.start_var, 0, 1)
 
         ctk.CTkLabel(self.range_frame, text="Ende:").grid(row=0, column=2, padx=(15, 0), sticky="w")
-        self.end_combo = self._build_time_combo(self.range_frame, self.end_var, 0, 3)
+        self._build_time_picker_control(self.range_frame, self.end_var, 0, 3)
 
         self.duration_frame = ctk.CTkFrame(time_card, fg_color="transparent")
         # Hidden by default in range mode
@@ -645,22 +680,33 @@ class TimeTrackerApp(ctk.CTk):
         self.update_combobox_values()
         self._apply_time_mode()
 
-    def _build_time_combo(self, parent, variable, row, col):
-        # CTkComboBox needs values list immediately, can't be empty if we want to show something
-        times = self._time_options()
-        combo = ctk.CTkComboBox(parent, variable=variable, values=times, width=100)
-        combo.grid(row=row, column=col, padx=5)
-        return combo
+    def _build_time_picker_control(self, parent, variable, row, col):
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        frame.grid(row=row, column=col, padx=5, sticky="ew")
 
-    @staticmethod
-    def _time_options():
-        times = []
-        current = datetime.strptime("00:00", TIME_FORMAT)
-        end_time = datetime.strptime("23:45", TIME_FORMAT)
-        while current <= end_time:
-            times.append(current.strftime(TIME_FORMAT))
-            current += timedelta(minutes=15)
-        return times
+        entry = ctk.CTkEntry(frame, textvariable=variable, width=80)
+        entry.pack(side=tk.LEFT)
+
+        btn = ctk.CTkButton(
+            frame,
+            text="⏱",
+            width=30,
+            fg_color="transparent",
+            border_width=1,
+            command=lambda: self.open_time_picker(variable)
+        )
+        btn.pack(side=tk.LEFT, padx=(2, 0))
+
+    def open_time_picker(self, variable):
+        if self._calendar_window is not None and self._calendar_window.winfo_exists():
+            self._calendar_window.lift()
+            return
+
+        def on_select(time_str):
+            variable.set(time_str)
+            self._calendar_window = None
+
+        self._calendar_window = TimePicker(self, on_select, self.icon_image)
 
     def _set_default_times(self):
         now_str = datetime.now().strftime(TIME_FORMAT)
