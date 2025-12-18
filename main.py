@@ -473,17 +473,22 @@ class TimeTrackerApp(tk.Tk):
     def _setup_styles(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        base_bg = "#070d1c"
-        card_bg = "#0e162b"
-        field_bg = "#111c33"
-        focus_bg = "#1a2d4c"
-        accent = "#8d7bff"
-        accent_active = "#4ee0ff"
-        fg = "#eef2ff"
-        muted = "#9fb6de"
-        border = "#1a2742"
-        card_alt = "#122041"
-        accent_soft = "#355ca3"
+
+        # New Modern Dark Palette
+        base_bg = "#0f172a"  # Slate-900
+        card_bg = "#1e293b"  # Slate-800
+        field_bg = "#334155" # Slate-700
+        focus_bg = "#475569" # Slate-600
+
+        accent = "#3b82f6"       # Blue-500
+        accent_active = "#60a5fa" # Blue-400
+        accent_soft = "#1e40af"   # Blue-800
+
+        fg = "#f8fafc"       # Slate-50
+        muted = "#94a3b8"    # Slate-400
+        border = "#475569"   # Slate-600
+        card_alt = "#0f172a" # Slate-900 (for headers/groups)
+
         self._colors = {
             "field_bg": field_bg,
             "focus_bg": focus_bg,
@@ -497,10 +502,19 @@ class TimeTrackerApp(tk.Tk):
             "accent_soft": accent_soft,
         }
         self._img_refs = []
-        self.option_add("*Font", ("Segoe UI", 11))
-        self.option_add("*TCombobox*Listbox.font", ("Segoe UI", 11))
+
+        # Modern Font Stack
+        main_font = ("Segoe UI", 10)
+        bold_font = ("Segoe UI", 10, "bold")
+        header_font = ("Segoe UI", 18, "bold")
+
+        self.option_add("*Font", main_font)
+        self.option_add("*TCombobox*Listbox.font", main_font)
         self.option_add("*TCombobox*Listbox.background", field_bg)
         self.option_add("*TCombobox*Listbox.foreground", fg)
+        self.option_add("*TCombobox*Listbox.selectBackground", accent)
+        self.option_add("*TCombobox*Listbox.selectForeground", "#ffffff")
+
         style.configure(
             "TFrame",
             background=base_bg,
@@ -523,20 +537,21 @@ class TimeTrackerApp(tk.Tk):
             "Title.TLabel",
             background=card_bg,
             foreground="#ffffff",
-            font=("Segoe UI", 16, "bold"),
+            font=header_font,
         )
         style.configure(
             "Subtle.TLabel",
             background=card_bg,
             foreground=muted,
-            font=("Segoe UI", 10),
+            font=main_font,
         )
         style.configure(
             "TButton",
             background=card_alt,
             foreground=fg,
-            padding=6,
+            padding=8,
             borderwidth=0,
+            font=bold_font,
         )
         style.map(
             "TButton",
@@ -567,12 +582,16 @@ class TimeTrackerApp(tk.Tk):
             background=[("active", accent_active)],
             foreground=[("active", "#ffffff")],
         )
-        toolbar_normal = self._rounded_rect_image("#4b6fb0", card_bg, radius=9)
-        toolbar_hover = self._rounded_rect_image("#5e86d1", card_bg, radius=9)
-        accent_img = self._rounded_rect_image(accent, card_bg, radius=7)
-        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=7)
-        danger_img = self._rounded_rect_image("#d14b64", card_bg, radius=7)
-        danger_hover = self._rounded_rect_image("#e5677c", card_bg, radius=7)
+        # Create rounded button images with the new colors
+        # Increase radius for a more modern look
+        toolbar_normal = self._rounded_rect_image(field_bg, card_bg, radius=6)
+        toolbar_hover = self._rounded_rect_image(focus_bg, card_bg, radius=6)
+
+        accent_img = self._rounded_rect_image(accent, card_bg, radius=6)
+        accent_hover = self._rounded_rect_image(accent_active, card_bg, radius=6)
+
+        danger_img = self._rounded_rect_image("#ef4444", card_bg, radius=6) # Red-500
+        danger_hover = self._rounded_rect_image("#f87171", card_bg, radius=6)
         self._img_refs.extend(
             [toolbar_normal, toolbar_hover, accent_img, accent_hover, danger_img, danger_hover]
         )
@@ -612,11 +631,11 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "ToolbarRounded.TButton",
-            foreground="#f4f6fb",
-            padding=6,
-            background="#4b6fb0",
+            foreground="#e2e8f0",
+            padding=8,
+            background=field_bg,
             borderwidth=0,
-            font=("Segoe UI", 10, "bold"),
+            font=bold_font,
         )
         style.element_create(
             "AccentRounded.border",
@@ -655,10 +674,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "AccentRounded.TButton",
             foreground="#ffffff",
-            padding=6,
+            padding=8,
             background=accent,
             borderwidth=0,
-            font=("Segoe UI", 10, "bold"),
+            font=bold_font,
         )
         style.element_create(
             "DangerRounded.border",
@@ -697,10 +716,10 @@ class TimeTrackerApp(tk.Tk):
         style.configure(
             "DangerRounded.TButton",
             foreground="#ffffff",
-            padding=6,
-            background="#d14b64",
+            padding=8,
+            background="#ef4444",
             borderwidth=0,
-            font=("Segoe UI", 10, "bold"),
+            font=bold_font,
         )
         style.configure(
             "TEntry",
@@ -720,17 +739,17 @@ class TimeTrackerApp(tk.Tk):
         )
         style.configure(
             "Date.TEntry",
-            fieldbackground="#20365d",
+            fieldbackground=field_bg,
             foreground=fg,
             insertcolor=fg,
-            bordercolor="#5f8bdc",
-            lightcolor="#5f8bdc",
+            bordercolor=accent,
+            lightcolor=accent,
             darkcolor=border,
             padding=8,
         )
         style.map(
             "Date.TEntry",
-            fieldbackground=[("focus", "#294a7c")],
+            fieldbackground=[("focus", focus_bg)],
             bordercolor=[("focus", accent_active)],
         )
         style.configure(
@@ -752,13 +771,14 @@ class TimeTrackerApp(tk.Tk):
             background=card_bg,
             fieldbackground=card_bg,
             foreground=fg,
-            rowheight=30,
+            rowheight=34,
             borderwidth=0,
             highlightthickness=0,
+            font=main_font,
         )
         style.map(
             "Modern.Treeview",
-            background=[("selected", "#1f3d69")],
+            background=[("selected", accent_soft)],
             foreground=[("selected", "#ffffff")],
         )
         style.configure(
@@ -766,8 +786,8 @@ class TimeTrackerApp(tk.Tk):
             background=card_alt,
             foreground=fg,
             relief="flat",
-            font=("Segoe UI", 10, "bold"),
-            padding=8,
+            font=bold_font,
+            padding=10,
         )
         style.map(
             "Modern.Treeview.Heading",
@@ -814,9 +834,9 @@ class TimeTrackerApp(tk.Tk):
 
         date_shell = tk.Frame(
             date_frame,
-            bg="#1b2f52",
+            bg=self._colors["field_bg"],
             highlightthickness=1,
-            highlightbackground=self._colors["accent_soft"],
+            highlightbackground=self._colors["border"],
             bd=0,
         )
         date_shell.grid(row=0, column=1, padx=(10, 12), sticky="ew")
@@ -825,7 +845,7 @@ class TimeTrackerApp(tk.Tk):
         date_icon = tk.Label(
             date_shell,
             text="📅",
-            bg="#1b2f52",
+            bg=self._colors["field_bg"],
             fg=self._colors["muted"],
             font=("Segoe UI", 12),
         )
@@ -965,8 +985,15 @@ class TimeTrackerApp(tk.Tk):
         ttk.Button(btn_frame, text="Felder leeren", style="ToolbarRounded.TButton", command=self.reset_form).grid(row=0, column=2, sticky="ew", padx=(8, 0))
         ttk.Button(btn_frame, text="Löschen", style="DangerRounded.TButton", command=self.delete_entry).grid(row=0, column=3, sticky="ew", padx=(8, 0))
 
+        self.timer_label = ttk.Label(btn_frame, text="", style="Card.TLabel", font=("Segoe UI", 12, "bold"), foreground="#8d7bff")
+        self.timer_label.grid(row=0, column=4, padx=(8, 0))
+
         self.timer_btn = ttk.Button(btn_frame, text="Timer starten", style="AccentRounded.TButton", command=self.toggle_timer)
-        self.timer_btn.grid(row=0, column=4, sticky="ew", padx=(8, 0))
+        self.timer_btn.grid(row=0, column=5, sticky="ew", padx=(8, 0))
+
+        self.abort_btn = ttk.Button(btn_frame, text="✖", style="Ghost.TButton", width=3, command=self.abort_timer)
+        self.abort_btn.grid(row=0, column=6, padx=(4, 0))
+        self.abort_btn.grid_remove()
 
         list_card = self._card(main_frame)
         list_card.grid(row=0, column=1, sticky="nsew")
@@ -1596,6 +1623,8 @@ class TimeTrackerApp(tk.Tk):
             self.timer_btn.configure(text="Timer beenden", style="DangerRounded.TButton")
             self.time_mode.set("range")
             self._apply_time_mode()
+            self.abort_btn.grid()
+            self.update_timer_display()
         else:
             # Stop timer
             end_time = datetime.now()
@@ -1610,8 +1639,30 @@ class TimeTrackerApp(tk.Tk):
 
             # If valid, add entry and reset
             self.add_entry()
-            self.timer_start = None
-            self.timer_btn.configure(text="Timer starten", style="AccentRounded.TButton")
+            self.abort_timer()
+
+    def abort_timer(self):
+        self.timer_start = None
+        self.timer_btn.configure(text="Timer starten", style="AccentRounded.TButton")
+        self.abort_btn.grid_remove()
+        self.timer_label.configure(text="")
+        # Clear start time if we aborted
+        self.start_var.set("")
+
+    def update_timer_display(self):
+        if self.timer_start is None:
+            return
+
+        now = datetime.now()
+        diff = now - self.timer_start
+        # Format as HH:MM:SS
+        total_seconds = int(diff.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+
+        self.timer_label.configure(text=f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+        self.after(1000, self.update_timer_display)
 
     def _load_icon(self):
         try:
