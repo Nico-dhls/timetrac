@@ -443,6 +443,7 @@ class TimeTrackerApp(tk.Tk):
         self.end_var = tk.StringVar()
         self.hours_var = tk.StringVar()
         self.time_mode = tk.StringVar(value="range")
+        self.timer_start = None
 
         self._set_default_times()
 
@@ -964,6 +965,9 @@ class TimeTrackerApp(tk.Tk):
         ttk.Button(btn_frame, text="Felder leeren", style="ToolbarRounded.TButton", command=self.reset_form).grid(row=0, column=2, sticky="ew", padx=(8, 0))
         ttk.Button(btn_frame, text="Löschen", style="DangerRounded.TButton", command=self.delete_entry).grid(row=0, column=3, sticky="ew", padx=(8, 0))
 
+        self.timer_btn = ttk.Button(btn_frame, text="Timer starten", style="AccentRounded.TButton", command=self.toggle_timer)
+        self.timer_btn.grid(row=0, column=4, sticky="ew", padx=(8, 0))
+
         list_card = self._card(main_frame)
         list_card.grid(row=0, column=1, sticky="nsew")
         list_card.grid_columnconfigure(0, weight=1)
@@ -1059,20 +1063,71 @@ class TimeTrackerApp(tk.Tk):
             values=self._time_options(),
         )
         combo.configure(postcommand=lambda c=combo: self._scroll_time_to_current(c))
+        combo.bind("<Button-1>", self.on_time_click)
         combo.grid(row=row, column=column, padx=(pad_x, 0))
         return combo
+
+    def on_time_click(self, event):
+        try:
+            element = event.widget.identify(event.x, event.y)
+            # Only auto-fill if clicking the text entry part, not the arrow button
+            if element == "textarea" or (element and "textarea" in str(element)):
+                now = datetime.now()
+                # Round to nearest 15 minutes
+                minutes = now.minute
+                remainder = minutes % 15
+                if remainder < 8:
+                    rounded_min = minutes - remainder
+                else:
+                    rounded_min = minutes + (15 - remainder)
+
+                if rounded_min == 60:
+                    now = now.replace(minute=0) + timedelta(hours=1)
+                else:
+                    now = now.replace(minute=rounded_min)
+
+                time_str = now.strftime(TIME_FORMAT)
+                # Use after_idle to avoid conflict with default focus/click behavior
+                self.after_idle(lambda: event.widget.set(time_str))
+        except Exception:
+            pass
 
     def _scroll_time_to_current(self, combo):
         values = combo["values"]
         if not values:
             return
         target_value = combo.get().strip()
-        now_value = datetime.now().strftime(TIME_FORMAT)
-        if target_value not in values:
-            target_value = now_value if now_value in values else ""
-        if target_value:
+
+        # If current text is in values, we are good - select it
+        if target_value in values:
             try:
                 combo.current(values.index(target_value))
+            except ValueError:
+                pass
+            return
+
+        # If text is empty or not in list, find closest to NOW
+        now = datetime.now()
+        # Convert now to minutes for comparison
+        now_mins = now.hour * 60 + now.minute
+
+        closest_index = -1
+        min_diff = float('inf')
+
+        for idx, val in enumerate(values):
+            try:
+                dt = datetime.strptime(val, TIME_FORMAT)
+                val_mins = dt.hour * 60 + dt.minute
+                diff = abs(val_mins - now_mins)
+                if diff < min_diff:
+                    min_diff = diff
+                    closest_index = idx
+            except ValueError:
+                continue
+
+        if closest_index != -1:
+            try:
+                combo.current(closest_index)
             except ValueError:
                 pass
 
@@ -1080,10 +1135,10 @@ class TimeTrackerApp(tk.Tk):
     def _time_options():
         times = []
         current = datetime.strptime("00:00", TIME_FORMAT)
-        end_time = datetime.strptime("23:00", TIME_FORMAT)
+        end_time = datetime.strptime("23:45", TIME_FORMAT)
         while current <= end_time:
             times.append(current.strftime(TIME_FORMAT))
-            current += timedelta(hours=1)
+            current += timedelta(minutes=15)
         return times
 
     def _set_default_times(self):
@@ -1532,6 +1587,31 @@ class TimeTrackerApp(tk.Tk):
             self.hours_var.set("")
             self.hours_entry.configure(state="disabled")
             self.mode_btn.configure(text="Zu Stunden wechseln")
+
+    def toggle_timer(self):
+        if self.timer_start is None:
+            # Start timer
+            self.timer_start = datetime.now()
+            self.start_var.set(self.timer_start.strftime(TIME_FORMAT))
+            self.timer_btn.configure(text="Timer beenden", style="DangerRounded.TButton")
+            self.time_mode.set("range")
+            self._apply_time_mode()
+        else:
+            # Stop timer
+            end_time = datetime.now()
+            self.end_var.set(end_time.strftime(TIME_FORMAT))
+
+            # Try to prepare entry (validates fields)
+            try:
+                self._prepare_entry()
+            except ValueError as exc:
+                messagebox.showerror("Ungültige Eingabe", f"Eintrag konnte nicht gespeichert werden: {exc}\nBitte Felder korrigieren und erneut Timer beenden klicken.")
+                return
+
+            # If valid, add entry and reset
+            self.add_entry()
+            self.timer_start = None
+            self.timer_btn.configure(text="Timer starten", style="AccentRounded.TButton")
 
     def _load_icon(self):
         try:
