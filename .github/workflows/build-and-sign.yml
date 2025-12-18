@@ -56,10 +56,8 @@ jobs:
       - name: Build EXE (Nuitka)
         shell: pwsh
         run: |
-          # Hinweis: Nuitka lädt den C-Compiler (MinGW64) automatisch, falls kein MSVC da ist.
-          # Auf 'windows-latest' ist MSVC aber vorinstalliert.
-          
           python -m nuitka `
+            --assume-yes-for-downloads `
             --onefile `
             --standalone `
             --windows-console-mode=disable `
