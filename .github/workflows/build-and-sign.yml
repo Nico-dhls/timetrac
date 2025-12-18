@@ -1,4 +1,4 @@
-name: Build, Sign & Release EXE (Nuitka)
+name: Build & Sign MSI (cx_Freeze)
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
+  build-sign-msi:
     runs-on: windows-latest
     
     steps:
@@ -21,64 +21,30 @@ jobs:
         with:
           python-version: "3.12"
 
-      # 1. ÄNDERUNG: Nuitka statt PyInstaller installieren
       - name: Install dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
-          pip install nuitka zstandard ordered-set
+          pip install cx_Freeze
 
-      # 2. ÄNDERUNG: Version berechnen und als ENV-Variable speichern
-      # Nuitka braucht kein Textfile, sondern die Version als String (1.5.0.0)
-      - name: Generate Version String
-        shell: python
-        run: |
-          import os
-          
-          # Tag holen (z.B. "v1.5.0") und "v" entfernen -> "1.5.0"
-          tag = os.environ.get("GITHUB_REF_NAME", "0.0.0").lstrip("v")
-          
-          # Version für Windows-Format splitten (1, 5, 0, 0)
-          parts = [p for p in tag.split(".") if p.isdigit()]
-          while len(parts) < 4:
-              parts.append("0")
-          
-          version_str = ".".join(parts) # Ergibt z.B. "1.5.0.0"
-          
-          # In Github Environment schreiben für spätere Steps
-          with open(os.environ['GITHUB_ENV'], 'a') as f:
-              f.write(f"APP_VERSION={version_str}\n")
-              
-          print(f"APP_VERSION set to {version_str}")
-
-      # 3. ÄNDERUNG: Build mit Nuitka
-      - name: Build EXE (Nuitka)
+      # SCHRITT A: Version in setup.py schreiben
+      # Wir suchen nach "VERSION_PLACEHOLDER" und ersetzen es durch den echten Tag (z.B. "1.0.2")
+      - name: Inject Version into setup.py
         shell: pwsh
         run: |
-          python -m nuitka `
-            --assume-yes-for-downloads `
-            --onefile `
-            --standalone `
-            --windows-console-mode=disable `
-            --enable-plugin=tk-inter `
-            --windows-icon-from-ico=".\timetable_icon.ico" `
-            --company-name="Nico Dahlhaus" `
-            --product-name="TimeTrac" `
-            --file-description="TimeTrac – Zeiterfassung" `
-            --copyright="© 2025 – Developed by Nico Dahlhaus" `
-            --product-version="${{ env.APP_VERSION }}" `
-            --file-version="${{ env.APP_VERSION }}" `
-            --output-dir=".\dist" `
-            --output-filename="timetrac.exe" `
-            ".\main.py"
-        # WICHTIG: Falls du NICHT tkinter nutzt, entferne --enable-plugin=tk-inter
-        # Falls du PyQt6 nutzt, nimm: --enable-plugin=pyqt6
-        # Falls du keine GUI hast (CLI Tool), entferne --windows-console-mode=disable
+          $tag = $env:GITHUB_REF_NAME.TrimStart("v")
+          Write-Host "Setze Version auf: $tag"
+          (Get-Content setup.py) -replace 'VERSION_PLACEHOLDER', $tag | Set-Content setup.py
 
-      # Ab hier bleibt der Prozess für das Signieren fast gleich, 
-      # da Nuitka die Datei auch in .\dist\timetrac.exe ablegt.
+      # SCHRITT B: MSI bauen
+      # cx_Freeze erstellt nun die MSI mit der korrekten Version in den Metadaten
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          python setup.py bdist_msi
 
+      # SCHRITT C: Zertifikat vorbereiten
       - name: Decode PFX Certificate
         shell: pwsh
         run: |
@@ -87,6 +53,7 @@ jobs:
           [IO.File]::WriteAllBytes($pfxPath, $encodedBytes)
           "PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
 
+      # SCHRITT D: Signtool finden
       - name: Find signtool.exe
         shell: pwsh
         run: |
@@ -94,37 +61,22 @@ jobs:
             Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
             Sort-Object FullName -Descending |
             Select-Object -First 1 -ExpandProperty FullName
-          if (-not $signtool) { throw "signtool.exe nicht gefunden" }
           "SIGNTOOL=$signtool" >> $env:GITHUB_ENV
 
-      - name: Sign EXE
+      # SCHRITT E: Das MSI signieren
+      # Wir suchen die MSI im dist-Ordner (Name ändert sich je nach Version) und signieren sie.
+      - name: Sign MSI
         shell: pwsh
         env:
           PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
         run: |
+          $msiFile = Get-ChildItem ".\dist\*.msi" | Select-Object -First 1
+          Write-Host "Signiere Datei: $($msiFile.FullName)"
+          
           & "$env:SIGNTOOL" sign /v `
             /f "$env:PFX_PATH" /p "$env:PFX_PASSWORD" `
             /fd SHA256 /tr "http://timestamp.sectigo.com" /td SHA256 `
-            ".\dist\timetrac.exe"
-
-      - name: Package ZIP
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path ".\release" | Out-Null
-          if (Test-Path ".\dist\timetrac.exe") { Copy-Item ".\dist\timetrac.exe" ".\release\timetrac.exe" -Force }
-          if (Test-Path ".\LICENSE") { Copy-Item ".\LICENSE" ".\release\LICENSE" -Force }
-          
-          $compressFiles = @(".\release\timetrac.exe")
-          if (Test-Path ".\release\LICENSE") { $compressFiles += ".\release\LICENSE" }
-          
-          Compress-Archive -Path $compressFiles -DestinationPath ".\timetrac.zip" -Force
-
-      - name: Create checksum
-        shell: pwsh
-        run: |
-          Get-FileHash ".\timetrac.zip" -Algorithm SHA256 |
-            ForEach-Object { "$($_.Hash)  timetrac.zip" } |
-            Out-File "timetrac.zip.sha256" -Encoding ASCII
+            $msiFile.FullName
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -133,6 +85,93 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            timetrac.zip
-            timetrac.zip.sha256
+            dist/*.msi
+          generate_release_notes: truename: Build & Sign MSI (cx_Freeze)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-sign-msi:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements.txt") { pip install -r requirements.txt }
+          pip install cx_Freeze
+
+      # SCHRITT A: Version in setup.py schreiben
+      # Wir suchen nach "VERSION_PLACEHOLDER" und ersetzen es durch den echten Tag (z.B. "1.0.2")
+      - name: Inject Version into setup.py
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME.TrimStart("v")
+          Write-Host "Setze Version auf: $tag"
+          (Get-Content setup.py) -replace 'VERSION_PLACEHOLDER', $tag | Set-Content setup.py
+
+      # SCHRITT B: MSI bauen
+      # cx_Freeze erstellt nun die MSI mit der korrekten Version in den Metadaten
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          python setup.py bdist_msi
+
+      # SCHRITT C: Zertifikat vorbereiten
+      - name: Decode PFX Certificate
+        shell: pwsh
+        run: |
+          $pfxPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath "codesign.pfx"
+          $encodedBytes = [Convert]::FromBase64String("${{ secrets.CODESIGN_PFX_BASE64 }}")
+          [IO.File]::WriteAllBytes($pfxPath, $encodedBytes)
+          "PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
+
+      # SCHRITT D: Signtool finden
+      - name: Find signtool.exe
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          "SIGNTOOL=$signtool" >> $env:GITHUB_ENV
+
+      # SCHRITT E: Das MSI signieren
+      # Wir suchen die MSI im dist-Ordner (Name ändert sich je nach Version) und signieren sie.
+      - name: Sign MSI
+        shell: pwsh
+        env:
+          PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          $msiFile = Get-ChildItem ".\dist\*.msi" | Select-Object -First 1
+          Write-Host "Signiere Datei: $($msiFile.FullName)"
+          
+          & "$env:SIGNTOOL" sign /v `
+            /f "$env:PFX_PATH" /p "$env:PFX_PASSWORD" `
+            /fd SHA256 /tr "http://timestamp.sectigo.com" /td SHA256 `
+            $msiFile.FullName
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            dist/*.msi
           generate_release_notes: true
