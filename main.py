@@ -371,12 +371,15 @@ class PresetManager(ctk.CTkToplevel):
 
         btn_frame = ctk.CTkFrame(main_layout, fg_color="transparent")
         btn_frame.pack(fill=tk.X, pady=(15, 0))
-        btn_frame.grid_columnconfigure(3, weight=1)
 
-        ctk.CTkButton(btn_frame, text="Hinzufügen", command=self.add_preset).grid(row=0, column=0, sticky="w")
-        self.update_btn = ctk.CTkButton(btn_frame, text="Aktualisieren", command=self.update_selected)
-        ctk.CTkButton(btn_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").grid(row=0, column=2, sticky="w", padx=(10, 0))
-        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).grid(row=0, column=4, sticky="e")
+        left_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
+        left_frame.pack(side=tk.LEFT)
+
+        ctk.CTkButton(left_frame, text="Hinzufügen", command=self.add_preset).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.update_btn = ctk.CTkButton(left_frame, text="Aktualisieren", command=self.update_selected)
+        ctk.CTkButton(left_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").grid(row=0, column=2, sticky="w")
+
+        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.refresh_list()
@@ -447,7 +450,7 @@ class PresetManager(ctk.CTkToplevel):
         if self._selected_index() is None:
             self.update_btn.grid_remove()
             return
-        self.update_btn.grid(row=0, column=1, sticky="w", padx=(10, 0))
+        self.update_btn.grid(row=0, column=1, sticky="w", padx=(0, 10))
 
     def remove_selected(self):
         idx = self._selected_index()
