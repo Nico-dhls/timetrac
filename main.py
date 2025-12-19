@@ -626,18 +626,18 @@ class TimeTrackerApp(ctk.CTk):
         btn_card = ctk.CTkFrame(form_frame, fg_color="transparent")
         btn_card.grid(row=7, column=0, sticky="ew", padx=20, pady=(0, 20))
         btn_card.grid_columnconfigure(0, weight=1)
-        btn_card.grid_columnconfigure(1, weight=0)
+        btn_card.grid_columnconfigure(1, weight=1)
         btn_card.grid_columnconfigure(2, weight=0)
+        btn_card.grid_columnconfigure(3, weight=0)
 
         self.add_btn = ctk.CTkButton(btn_card, text="Eintrag hinzufügen", height=40, font=("Segoe UI", 13, "bold"), command=self.add_entry)
-        self.add_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.add_btn.grid(row=0, column=0, columnspan=2, sticky="ew", padx=(0, 10))
 
         self.update_btn = ctk.CTkButton(btn_card, text="Aktualisieren", height=40, font=("Segoe UI", 13, "bold"), command=self.update_entry)
-        self.update_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
-        self.update_btn.grid_remove() # Hidden initially
+        # update_btn is hidden initially and managed by _toggle_update_button
 
-        ctk.CTkButton(btn_card, text="Neu", width=80, height=40, fg_color="transparent", border_width=1, command=self.reset_form).grid(row=0, column=1, sticky="e")
-        ctk.CTkButton(btn_card, text="Löschen", width=80, height=40, fg_color="#ef4444", hover_color="#dc2626", command=self.delete_entry).grid(row=0, column=2, padx=(10, 0), sticky="e")
+        ctk.CTkButton(btn_card, text="Neu", width=80, height=40, fg_color="transparent", border_width=1, command=self.reset_form).grid(row=0, column=2, sticky="e")
+        ctk.CTkButton(btn_card, text="Löschen", width=80, height=40, fg_color="#ef4444", hover_color="#dc2626", command=self.delete_entry).grid(row=0, column=3, padx=(10, 0), sticky="e")
 
         # Timer Area
         timer_frame = ctk.CTkFrame(form_frame)
@@ -1144,11 +1144,11 @@ class TimeTrackerApp(ctk.CTk):
 
     def _toggle_update_button(self, show):
         if show:
-            if not self.update_btn.winfo_ismapped():
-                self.update_btn.grid()
+            self.update_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+            self.add_btn.grid(row=0, column=1, columnspan=1, sticky="ew", padx=(0, 10))
         else:
-            if self.update_btn.winfo_ismapped():
-                self.update_btn.grid_remove()
+            self.update_btn.grid_remove()
+            self.add_btn.grid(row=0, column=0, columnspan=2, sticky="ew", padx=(0, 10))
 
     def toggle_time_mode(self):
         new_mode = "duration" if self.time_mode.get() == "range" else "range"
