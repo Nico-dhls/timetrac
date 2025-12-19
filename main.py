@@ -316,8 +316,8 @@ class PresetManager(ctk.CTkToplevel):
     def __init__(self, master, presets, on_save, icon_image=None):
         super().__init__(master)
         self.title("Vorlagen verwalten")
-        self.geometry("600x400")
-        self.resizable(False, False)
+        self.geometry("800x450")
+        self.resizable(True, True)
         # CTk toplevels act as independent windows by default, keep it transient
         self.transient(master)
         if icon_image is not None:
@@ -330,11 +330,44 @@ class PresetManager(ctk.CTkToplevel):
         main_layout = ctk.CTkFrame(self, fg_color="transparent")
         main_layout.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        ctk.CTkLabel(main_layout, text="Vorlagen setzen PSP und Leistungsart automatisch.", text_color="gray").pack(anchor=tk.W, pady=(0, 10))
+        # Bottom Area (Form + Buttons) - Packed FIRST (bottom) to ensure visibility
+        bottom_container = ctk.CTkFrame(main_layout, fg_color="transparent")
+        bottom_container.pack(side=tk.BOTTOM, fill=tk.X, pady=(15, 0))
 
-        # Treeview Wrapper Frame
+        form = ctk.CTkFrame(bottom_container, fg_color="transparent")
+        form.pack(fill=tk.X, pady=(0, 15))
+
+        self.name_var = tk.StringVar()
+        self.psp_var = tk.StringVar()
+        self.type_var = tk.StringVar()
+
+        ctk.CTkLabel(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.name_var, width=180).grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
+
+        ctk.CTkLabel(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.psp_var, width=150).grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
+
+        ctk.CTkLabel(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.type_var, width=180).grid(row=1, column=2, sticky=tk.W)
+
+        btn_frame = ctk.CTkFrame(bottom_container, fg_color="transparent")
+        btn_frame.pack(fill=tk.X)
+
+        left_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
+        left_frame.pack(side=tk.LEFT)
+
+        ctk.CTkButton(left_frame, text="Hinzufügen", command=self.add_preset).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.update_btn = ctk.CTkButton(left_frame, text="Aktualisieren", command=self.update_selected)
+        ctk.CTkButton(left_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").grid(row=0, column=2, sticky="w")
+
+        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
+
+        # Header
+        ctk.CTkLabel(main_layout, text="Vorlagen setzen PSP und Leistungsart automatisch.", text_color="gray").pack(side=tk.TOP, anchor=tk.W, pady=(0, 10))
+
+        # Treeview Wrapper Frame - Packed Last (Top) to take remaining space
         tree_frame = ctk.CTkFrame(main_layout)
-        tree_frame.pack(fill=tk.BOTH, expand=True)
+        tree_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         columns = ("name", "psp", "type")
         # Standard ttk Treeview needs styling to match CTk
@@ -352,30 +385,6 @@ class PresetManager(ctk.CTkToplevel):
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
-
-        form = ctk.CTkFrame(main_layout, fg_color="transparent")
-        form.pack(fill=tk.X, pady=(15, 5))
-
-        self.name_var = tk.StringVar()
-        self.psp_var = tk.StringVar()
-        self.type_var = tk.StringVar()
-
-        ctk.CTkLabel(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
-        ctk.CTkEntry(form, textvariable=self.name_var, width=180).grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
-
-        ctk.CTkLabel(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
-        ctk.CTkEntry(form, textvariable=self.psp_var, width=150).grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
-
-        ctk.CTkLabel(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
-        ctk.CTkEntry(form, textvariable=self.type_var, width=180).grid(row=1, column=2, sticky=tk.W)
-
-        btn_frame = ctk.CTkFrame(main_layout, fg_color="transparent")
-        btn_frame.pack(fill=tk.X, pady=(15, 0))
-
-        ctk.CTkButton(btn_frame, text="Hinzufügen", command=self.add_preset).pack(side=tk.LEFT)
-        self.update_btn = ctk.CTkButton(btn_frame, text="Aktualisieren", command=self.update_selected)
-        ctk.CTkButton(btn_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").pack(side=tk.LEFT, padx=(10, 0))
-        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.refresh_list()
@@ -444,11 +453,9 @@ class PresetManager(ctk.CTkToplevel):
 
     def _update_update_button_visibility(self):
         if self._selected_index() is None:
-            if self.update_btn.winfo_manager():
-                self.update_btn.pack_forget()
+            self.update_btn.grid_remove()
             return
-        if not self.update_btn.winfo_manager():
-            self.update_btn.pack(side=tk.LEFT, padx=(10, 0))
+        self.update_btn.grid(row=0, column=1, sticky="w", padx=(0, 10))
 
     def remove_selected(self):
         idx = self._selected_index()
@@ -625,17 +632,19 @@ class TimeTrackerApp(ctk.CTk):
         # Action Buttons
         btn_card = ctk.CTkFrame(form_frame, fg_color="transparent")
         btn_card.grid(row=7, column=0, sticky="ew", padx=20, pady=(0, 20))
-        btn_card.grid_columnconfigure((0, 1), weight=1)
+        btn_card.grid_columnconfigure(0, weight=1)
+        btn_card.grid_columnconfigure(1, weight=1)
+        btn_card.grid_columnconfigure(2, weight=0)
+        btn_card.grid_columnconfigure(3, weight=0)
 
         self.add_btn = ctk.CTkButton(btn_card, text="Eintrag hinzufügen", height=40, font=("Segoe UI", 13, "bold"), command=self.add_entry)
-        self.add_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.add_btn.grid(row=0, column=0, columnspan=2, sticky="ew", padx=(0, 10))
 
         self.update_btn = ctk.CTkButton(btn_card, text="Aktualisieren", height=40, font=("Segoe UI", 13, "bold"), command=self.update_entry)
-        self.update_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
-        self.update_btn.grid_remove() # Hidden initially
+        # update_btn is hidden initially and managed by _toggle_update_button
 
-        ctk.CTkButton(btn_card, text="Neu", width=80, height=40, fg_color="transparent", border_width=1, command=self.reset_form).grid(row=0, column=1, sticky="e")
-        ctk.CTkButton(btn_card, text="Löschen", width=80, height=40, fg_color="#ef4444", hover_color="#dc2626", command=self.delete_entry).grid(row=0, column=2, padx=(10, 0), sticky="e")
+        ctk.CTkButton(btn_card, text="Neu", width=80, height=40, fg_color="transparent", border_width=1, command=self.reset_form).grid(row=0, column=2, sticky="e")
+        ctk.CTkButton(btn_card, text="Löschen", width=80, height=40, fg_color="#ef4444", hover_color="#dc2626", command=self.delete_entry).grid(row=0, column=3, padx=(10, 0), sticky="e")
 
         # Timer Area
         timer_frame = ctk.CTkFrame(form_frame)
@@ -850,7 +859,7 @@ class TimeTrackerApp(ctk.CTk):
             try:
                 hours = float(hours_value.replace(",", "."))
             except ValueError as exc:
-                raise ValueError("Stunden müssen eine Zahl sein") from exc
+                raise ValueError(f"Stunden müssen eine Zahl sein (Eingabe: '{hours_value}')") from exc
             if hours <= 0:
                 raise ValueError("Stunden müssen größer als 0 sein")
             start = ""
@@ -928,6 +937,8 @@ class TimeTrackerApp(ctk.CTk):
         self.tree.selection_remove(self.tree.selection())
 
     def refresh_entry_list(self):
+        self.editing_index = None
+        self._toggle_update_button(False)
         for item in self.tree.get_children():
             self.tree.delete(item)
 
@@ -1140,11 +1151,11 @@ class TimeTrackerApp(ctk.CTk):
 
     def _toggle_update_button(self, show):
         if show:
-            if not self.update_btn.winfo_ismapped():
-                self.update_btn.grid()
+            self.update_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+            self.add_btn.grid(row=0, column=1, columnspan=1, sticky="ew", padx=(0, 10))
         else:
-            if self.update_btn.winfo_ismapped():
-                self.update_btn.grid_remove()
+            self.update_btn.grid_remove()
+            self.add_btn.grid(row=0, column=0, columnspan=2, sticky="ew", padx=(0, 10))
 
     def toggle_time_mode(self):
         new_mode = "duration" if self.time_mode.get() == "range" else "range"
