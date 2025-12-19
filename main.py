@@ -317,7 +317,7 @@ class PresetManager(ctk.CTkToplevel):
         super().__init__(master)
         self.title("Vorlagen verwalten")
         self.geometry("800x450")
-        self.resizable(False, False)
+        self.resizable(True, True)
         # CTk toplevels act as independent windows by default, keep it transient
         self.transient(master)
         if icon_image is not None:
@@ -330,11 +330,44 @@ class PresetManager(ctk.CTkToplevel):
         main_layout = ctk.CTkFrame(self, fg_color="transparent")
         main_layout.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        ctk.CTkLabel(main_layout, text="Vorlagen setzen PSP und Leistungsart automatisch.", text_color="gray").pack(anchor=tk.W, pady=(0, 10))
+        # Bottom Area (Form + Buttons) - Packed FIRST (bottom) to ensure visibility
+        bottom_container = ctk.CTkFrame(main_layout, fg_color="transparent")
+        bottom_container.pack(side=tk.BOTTOM, fill=tk.X, pady=(15, 0))
 
-        # Treeview Wrapper Frame
+        form = ctk.CTkFrame(bottom_container, fg_color="transparent")
+        form.pack(fill=tk.X, pady=(0, 15))
+
+        self.name_var = tk.StringVar()
+        self.psp_var = tk.StringVar()
+        self.type_var = tk.StringVar()
+
+        ctk.CTkLabel(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.name_var, width=180).grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
+
+        ctk.CTkLabel(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.psp_var, width=150).grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
+
+        ctk.CTkLabel(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
+        ctk.CTkEntry(form, textvariable=self.type_var, width=180).grid(row=1, column=2, sticky=tk.W)
+
+        btn_frame = ctk.CTkFrame(bottom_container, fg_color="transparent")
+        btn_frame.pack(fill=tk.X)
+
+        left_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
+        left_frame.pack(side=tk.LEFT)
+
+        ctk.CTkButton(left_frame, text="Hinzufügen", command=self.add_preset).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.update_btn = ctk.CTkButton(left_frame, text="Aktualisieren", command=self.update_selected)
+        ctk.CTkButton(left_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").grid(row=0, column=2, sticky="w")
+
+        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
+
+        # Header
+        ctk.CTkLabel(main_layout, text="Vorlagen setzen PSP und Leistungsart automatisch.", text_color="gray").pack(side=tk.TOP, anchor=tk.W, pady=(0, 10))
+
+        # Treeview Wrapper Frame - Packed Last (Top) to take remaining space
         tree_frame = ctk.CTkFrame(main_layout)
-        tree_frame.pack(fill=tk.BOTH, expand=True)
+        tree_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         columns = ("name", "psp", "type")
         # Standard ttk Treeview needs styling to match CTk
@@ -352,34 +385,6 @@ class PresetManager(ctk.CTkToplevel):
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
-
-        form = ctk.CTkFrame(main_layout, fg_color="transparent")
-        form.pack(fill=tk.X, pady=(15, 5))
-
-        self.name_var = tk.StringVar()
-        self.psp_var = tk.StringVar()
-        self.type_var = tk.StringVar()
-
-        ctk.CTkLabel(form, text="Name:").grid(row=0, column=0, sticky=tk.W)
-        ctk.CTkEntry(form, textvariable=self.name_var, width=180).grid(row=1, column=0, sticky=tk.W, padx=(0, 10))
-
-        ctk.CTkLabel(form, text="PSP:").grid(row=0, column=1, sticky=tk.W)
-        ctk.CTkEntry(form, textvariable=self.psp_var, width=150).grid(row=1, column=1, sticky=tk.W, padx=(0, 10))
-
-        ctk.CTkLabel(form, text="Leistungsart:").grid(row=0, column=2, sticky=tk.W)
-        ctk.CTkEntry(form, textvariable=self.type_var, width=180).grid(row=1, column=2, sticky=tk.W)
-
-        btn_frame = ctk.CTkFrame(main_layout, fg_color="transparent")
-        btn_frame.pack(fill=tk.X, pady=(15, 0))
-
-        left_frame = ctk.CTkFrame(btn_frame, fg_color="transparent")
-        left_frame.pack(side=tk.LEFT)
-
-        ctk.CTkButton(left_frame, text="Hinzufügen", command=self.add_preset).grid(row=0, column=0, sticky="w", padx=(0, 10))
-        self.update_btn = ctk.CTkButton(left_frame, text="Aktualisieren", command=self.update_selected)
-        ctk.CTkButton(left_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").grid(row=0, column=2, sticky="w")
-
-        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.refresh_list()
