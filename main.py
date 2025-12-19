@@ -625,7 +625,9 @@ class TimeTrackerApp(ctk.CTk):
         # Action Buttons
         btn_card = ctk.CTkFrame(form_frame, fg_color="transparent")
         btn_card.grid(row=7, column=0, sticky="ew", padx=20, pady=(0, 20))
-        btn_card.grid_columnconfigure((0, 1), weight=1)
+        btn_card.grid_columnconfigure(0, weight=1)
+        btn_card.grid_columnconfigure(1, weight=0)
+        btn_card.grid_columnconfigure(2, weight=0)
 
         self.add_btn = ctk.CTkButton(btn_card, text="Eintrag hinzufügen", height=40, font=("Segoe UI", 13, "bold"), command=self.add_entry)
         self.add_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
@@ -850,7 +852,7 @@ class TimeTrackerApp(ctk.CTk):
             try:
                 hours = float(hours_value.replace(",", "."))
             except ValueError as exc:
-                raise ValueError("Stunden müssen eine Zahl sein") from exc
+                raise ValueError(f"Stunden müssen eine Zahl sein (Eingabe: '{hours_value}')") from exc
             if hours <= 0:
                 raise ValueError("Stunden müssen größer als 0 sein")
             start = ""
@@ -928,6 +930,8 @@ class TimeTrackerApp(ctk.CTk):
         self.tree.selection_remove(self.tree.selection())
 
     def refresh_entry_list(self):
+        self.editing_index = None
+        self._toggle_update_button(False)
         for item in self.tree.get_children():
             self.tree.delete(item)
 
