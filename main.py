@@ -316,7 +316,7 @@ class PresetManager(ctk.CTkToplevel):
     def __init__(self, master, presets, on_save, icon_image=None):
         super().__init__(master)
         self.title("Vorlagen verwalten")
-        self.geometry("600x400")
+        self.geometry("800x450")
         self.resizable(False, False)
         # CTk toplevels act as independent windows by default, keep it transient
         self.transient(master)
@@ -371,11 +371,12 @@ class PresetManager(ctk.CTkToplevel):
 
         btn_frame = ctk.CTkFrame(main_layout, fg_color="transparent")
         btn_frame.pack(fill=tk.X, pady=(15, 0))
+        btn_frame.grid_columnconfigure(3, weight=1)
 
-        ctk.CTkButton(btn_frame, text="Hinzufügen", command=self.add_preset).pack(side=tk.LEFT)
+        ctk.CTkButton(btn_frame, text="Hinzufügen", command=self.add_preset).grid(row=0, column=0, sticky="w")
         self.update_btn = ctk.CTkButton(btn_frame, text="Aktualisieren", command=self.update_selected)
-        ctk.CTkButton(btn_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").pack(side=tk.LEFT, padx=(10, 0))
-        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).pack(side=tk.RIGHT)
+        ctk.CTkButton(btn_frame, text="Entfernen", command=self.remove_selected, fg_color="#ef4444", hover_color="#dc2626").grid(row=0, column=2, sticky="w", padx=(10, 0))
+        ctk.CTkButton(btn_frame, text="Schließen", command=self.save_and_close, fg_color="transparent", border_width=1, text_color=("gray10", "gray90")).grid(row=0, column=4, sticky="e")
 
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
         self.refresh_list()
@@ -444,11 +445,9 @@ class PresetManager(ctk.CTkToplevel):
 
     def _update_update_button_visibility(self):
         if self._selected_index() is None:
-            if self.update_btn.winfo_manager():
-                self.update_btn.pack_forget()
+            self.update_btn.grid_remove()
             return
-        if not self.update_btn.winfo_manager():
-            self.update_btn.pack(side=tk.LEFT, padx=(10, 0))
+        self.update_btn.grid(row=0, column=1, sticky="w", padx=(10, 0))
 
     def remove_selected(self):
         idx = self._selected_index()
