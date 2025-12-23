@@ -713,6 +713,7 @@ class TimeTrackerApp(ctk.CTk):
         self.tree.bind("<<TreeviewSelect>>", self.on_select_entry)
         self.tree.bind("<Control-c>", self.copy_selection)
         self.tree.bind("<Control-C>", self.copy_selection)
+        self.tree.bind("<Button-1>", self.on_tree_click)
 
         # Styling tags
         self.tree.tag_configure("group", background="#333333", foreground="white", font=("Segoe UI", 11, "bold"))
@@ -885,7 +886,7 @@ class TimeTrackerApp(ctk.CTk):
         save_data(self.data)
         self.update_combobox_values()
         self.refresh_entry_list()
-        self.reset_form()
+        self.reset_form(reset_mode=False)
 
     def update_entry(self):
         if self.editing_index is None:
@@ -909,7 +910,7 @@ class TimeTrackerApp(ctk.CTk):
         save_data(self.data)
         self.update_combobox_values()
         self.refresh_entry_list()
-        self.reset_form()
+        self.reset_form(reset_mode=False)
 
     def _prepare_entry(self):
         day_key, psp, ltype, desc, start, end, hours = self.validate_fields()
@@ -924,13 +925,14 @@ class TimeTrackerApp(ctk.CTk):
         }
         return day_key, entry
 
-    def reset_form(self):
+    def reset_form(self, reset_mode=True):
         self.preset_var.set("")
         self.psp_var.set("")
         self.type_var.set("")
         self.desc_var.set("")
         self._set_default_times()
-        self.time_mode.set("range")
+        if reset_mode:
+            self.time_mode.set("range")
         self._apply_time_mode()
         self.editing_index = None
         self._toggle_update_button(False)
@@ -984,6 +986,12 @@ class TimeTrackerApp(ctk.CTk):
 
         week_hours = self._calculate_week_hours(day_key)
         self.week_total_var.set(f"Woche: {week_hours:.2f} h")
+
+    def on_tree_click(self, event):
+        if not self.tree.identify_row(event.y):
+            self.tree.selection_remove(self.tree.selection())
+            self.editing_index = None
+            self._toggle_update_button(False)
 
     def on_select_entry(self, event):
         selection = self.tree.selection()
