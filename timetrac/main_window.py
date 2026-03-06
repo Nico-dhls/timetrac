@@ -36,6 +36,7 @@ from .database import Database
 from .models import Preset, TimeEntry, TimeMode
 from .preset_dialog import PresetManagerDialog
 from .sap_export_dialog import SapExportDialog
+from .statistics_dialog import StatisticsDialog
 from .widgets import DateNavigator, EditableComboBox, TimeEdit, make_card, make_label
 
 GERMAN_DAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -295,7 +296,16 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        layout.addWidget(make_label("Übersicht", "title"))
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(make_label("Übersicht", "title"))
+        header_layout.addStretch()
+
+        stats_btn = QPushButton("Statistik")
+        stats_btn.setObjectName("secondary")
+        stats_btn.setToolTip("Zeitstatistik nach PSP anzeigen")
+        stats_btn.clicked.connect(self._open_statistics)
+        header_layout.addWidget(stats_btn)
+        layout.addLayout(header_layout)
 
         # Tabs: Day view / Week view
         self.tabs = QTabWidget()
@@ -823,4 +833,8 @@ class MainWindow(QMainWindow):
     def _open_preset_manager(self):
         dialog = PresetManagerDialog(self.db, self)
         dialog.presets_changed.connect(self._refresh_presets)
+        dialog.exec()
+
+    def _open_statistics(self):
+        dialog = StatisticsDialog(self.db, self.date_nav.selected_date, self)
         dialog.exec()

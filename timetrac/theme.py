@@ -1,7 +1,7 @@
 """Dark theme palette and styling for TimeTrac."""
 
 from PySide6.QtGui import QColor, QPalette
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 # Color palette
 BG_PRIMARY = "#1e1e2e"       # Main background
@@ -149,7 +149,7 @@ STYLESHEET = f"""
         outline: none;
     }}
 
-    /* Buttons */
+    /* Buttons — all interactive, with shadow/scale cues */
     QPushButton {{
         background-color: {ACCENT};
         color: white;
@@ -158,60 +158,108 @@ STYLESHEET = f"""
         padding: 8px 16px;
         font-weight: bold;
         min-height: 20px;
+        border-bottom: 3px solid #5b21b6;
     }}
 
     QPushButton:hover {{
         background-color: {ACCENT_HOVER};
+        border-bottom: 3px solid #4c1d95;
+        padding-top: 7px;
+        padding-bottom: 9px;
     }}
 
     QPushButton:pressed {{
         background-color: #5b21b6;
+        border-bottom: 1px solid #4c1d95;
+        padding-top: 10px;
+        padding-bottom: 8px;
+    }}
+
+    QPushButton:disabled {{
+        background-color: {BG_TERTIARY};
+        color: {TEXT_MUTED};
+        border-bottom: 2px solid {BORDER};
     }}
 
     QPushButton#secondary {{
         background-color: transparent;
         border: 1px solid {BORDER};
+        border-bottom: 3px solid {BORDER};
         color: {TEXT_PRIMARY};
         font-weight: normal;
     }}
 
     QPushButton#secondary:hover {{
         background-color: {BG_HOVER};
+        border: 1px solid {ACCENT_LIGHT};
+        border-bottom: 3px solid {ACCENT};
+        color: {ACCENT_LIGHT};
+    }}
+
+    QPushButton#secondary:pressed {{
+        background-color: {BG_TERTIARY};
+        border-bottom: 1px solid {BORDER};
+        padding-top: 10px;
     }}
 
     QPushButton#danger {{
         background-color: {DANGER};
+        border-bottom: 3px solid #b91c1c;
     }}
 
     QPushButton#danger:hover {{
         background-color: {DANGER_HOVER};
+        border-bottom: 3px solid #991b1b;
+    }}
+
+    QPushButton#danger:pressed {{
+        background-color: #b91c1c;
+        border-bottom: 1px solid #991b1b;
+        padding-top: 10px;
     }}
 
     QPushButton#success {{
         background-color: {SUCCESS};
         color: white;
+        border-bottom: 3px solid #15803d;
     }}
 
     QPushButton#success:hover {{
         background-color: #16a34a;
+        border-bottom: 3px solid #166534;
+    }}
+
+    QPushButton#success:pressed {{
+        background-color: #15803d;
+        border-bottom: 1px solid #166534;
+        padding-top: 10px;
     }}
 
     QPushButton#flat {{
         background-color: transparent;
         color: {TEXT_SECONDARY};
         border: none;
+        border-bottom: none;
         font-weight: normal;
         padding: 4px 8px;
     }}
 
     QPushButton#flat:hover {{
-        color: {TEXT_PRIMARY};
+        color: {ACCENT_LIGHT};
         background-color: {BG_HOVER};
+        border-bottom: none;
+    }}
+
+    QPushButton#flat:pressed {{
+        color: {ACCENT};
+        background-color: {BG_TERTIARY};
+        border-bottom: none;
     }}
 
     QPushButton#navButton {{
         background-color: transparent;
         border: 1px solid {BORDER};
+        border-bottom: 3px solid {BORDER};
         color: {TEXT_PRIMARY};
         font-weight: normal;
         padding: 6px 12px;
@@ -220,6 +268,56 @@ STYLESHEET = f"""
 
     QPushButton#navButton:hover {{
         background-color: {BG_HOVER};
+        border: 1px solid {ACCENT_LIGHT};
+        border-bottom: 3px solid {ACCENT};
+        color: {ACCENT_LIGHT};
+    }}
+
+    QPushButton#navButton:pressed {{
+        background-color: {BG_TERTIARY};
+        border-bottom: 1px solid {BORDER};
+        padding-top: 8px;
+    }}
+
+    /* Checkbox styling */
+    QCheckBox {{
+        spacing: 8px;
+        color: {TEXT_PRIMARY};
+    }}
+
+    QCheckBox::indicator {{
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid {BORDER};
+        background-color: {BG_TERTIARY};
+    }}
+
+    QCheckBox::indicator:hover {{
+        border-color: {ACCENT_LIGHT};
+    }}
+
+    QCheckBox::indicator:checked {{
+        background-color: {ACCENT};
+        border-color: {ACCENT};
+    }}
+
+    /* Date edit */
+    QDateEdit {{
+        background-color: {BG_TERTIARY};
+        border: 1px solid {BORDER};
+        border-radius: 6px;
+        padding: 6px 10px;
+        color: {TEXT_PRIMARY};
+    }}
+
+    QDateEdit:focus {{
+        border: 1px solid {ACCENT};
+    }}
+
+    QDateEdit::drop-down {{
+        border: none;
+        width: 24px;
     }}
 
     /* Table / Tree */
@@ -373,3 +471,14 @@ STYLESHEET = f"""
 
 def apply_theme(app: QApplication):
     app.setStyleSheet(STYLESHEET)
+
+    # Set pointing hand cursor on all buttons globally
+    from PySide6.QtCore import Qt
+
+    original_init = QPushButton.__init__
+
+    def _patched_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        self.setCursor(Qt.PointingHandCursor)
+
+    QPushButton.__init__ = _patched_init

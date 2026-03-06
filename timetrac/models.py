@@ -37,6 +37,7 @@ class Preset:
     psp: str
     activity_type: str
     notes: str = ""  # customer-specific notes / syntax hints for descriptions
+    billable: bool = True  # fakturierbar / nicht fakturierbar
 
     @property
     def display_name(self) -> str:

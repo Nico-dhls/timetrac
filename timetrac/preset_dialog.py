@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QFrame,
     QGridLayout,
@@ -57,13 +58,14 @@ class PresetManagerDialog(QDialog):
         left_layout = QVBoxLayout(left)
 
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Name", "PSP", "Leistungsart"])
+        self.tree.setHeaderLabels(["Name", "PSP", "Leistungsart", "Fakt."])
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
-        self.tree.header().setStretchLastSection(True)
+        self.tree.header().setStretchLastSection(False)
         self.tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
         self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.tree.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.tree.currentItemChanged.connect(self._on_select)
         left_layout.addWidget(self.tree)
 
@@ -106,6 +108,11 @@ class PresetManagerDialog(QDialog):
         )
         self.notes_edit.setMaximumHeight(120)
         grid.addWidget(self.notes_edit, 3, 1)
+
+        self.billable_check = QCheckBox("Fakturierbar")
+        self.billable_check.setChecked(True)
+        self.billable_check.setStyleSheet("QCheckBox { spacing: 8px; } QCheckBox::indicator { width: 18px; height: 18px; }")
+        grid.addWidget(self.billable_check, 4, 1)
 
         right_layout.addLayout(grid)
 
@@ -155,7 +162,8 @@ class PresetManagerDialog(QDialog):
         self.tree.clear()
         self._presets = self.db.get_presets()
         for preset in self._presets:
-            item = QTreeWidgetItem([preset.name, preset.psp, preset.activity_type])
+            billable_text = "Ja" if preset.billable else "Nein"
+            item = QTreeWidgetItem([preset.name, preset.psp, preset.activity_type, billable_text])
             item.setData(0, Qt.UserRole, preset.id)
             self.tree.addTopLevelItem(item)
 
@@ -174,15 +182,17 @@ class PresetManagerDialog(QDialog):
         self.psp_edit.setText(preset.psp)
         self.type_edit.setText(preset.activity_type)
         self.notes_edit.setPlainText(preset.notes)
+        self.billable_check.setChecked(preset.billable)
 
         self.update_btn.setVisible(True)
         self.delete_btn.setVisible(True)
 
-    def _get_form_values(self) -> tuple[str, str, str, str] | None:
+    def _get_form_values(self) -> tuple[str, str, str, str, bool] | None:
         name = self.name_edit.text().strip()
         psp = self.psp_edit.text().strip()
         act_type = self.type_edit.text().strip()
         notes = self.notes_edit.toPlainText().strip()
+        billable = self.billable_check.isChecked()
 
         if not name:
             QMessageBox.warning(self, "Vorlage", "Bitte einen Namen eingeben.")
@@ -190,15 +200,15 @@ class PresetManagerDialog(QDialog):
         if not psp and not act_type:
             QMessageBox.warning(self, "Vorlage", "Mindestens PSP oder Leistungsart muss gesetzt sein.")
             return None
-        return name, psp, act_type, notes
+        return name, psp, act_type, notes, billable
 
     def _add_preset(self):
         values = self._get_form_values()
         if not values:
             return
-        name, psp, act_type, notes = values
+        name, psp, act_type, notes, billable = values
         try:
-            self.db.add_preset(Preset(id=None, name=name, psp=psp, activity_type=act_type, notes=notes))
+            self.db.add_preset(Preset(id=None, name=name, psp=psp, activity_type=act_type, notes=notes, billable=billable))
         except Exception as e:
             QMessageBox.warning(self, "Fehler", f"Vorlage konnte nicht gespeichert werden:\n{e}")
             return
@@ -213,10 +223,10 @@ class PresetManagerDialog(QDialog):
         values = self._get_form_values()
         if not values:
             return
-        name, psp, act_type, notes = values
+        name, psp, act_type, notes, billable = values
         preset_id = current.data(0, Qt.UserRole)
         try:
-            self.db.update_preset(Preset(id=preset_id, name=name, psp=psp, activity_type=act_type, notes=notes))
+            self.db.update_preset(Preset(id=preset_id, name=name, psp=psp, activity_type=act_type, notes=notes, billable=billable))
         except Exception as e:
             QMessageBox.warning(self, "Fehler", f"Vorlage konnte nicht aktualisiert werden:\n{e}")
             return
@@ -243,6 +253,7 @@ class PresetManagerDialog(QDialog):
         self.psp_edit.clear()
         self.type_edit.clear()
         self.notes_edit.clear()
+        self.billable_check.setChecked(True)
         self.tree.clearSelection()
         self.update_btn.setVisible(False)
         self.delete_btn.setVisible(False)

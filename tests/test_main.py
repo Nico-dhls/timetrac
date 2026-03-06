@@ -181,13 +181,16 @@ def test_db_presets_crud(tmp_path):
     assert len(presets) == 1
     assert presets[0].name == "Test"
     assert presets[0].notes == "Use format: [TICKET]-desc"
+    assert presets[0].billable is True
 
     preset.id = preset_id
     preset.notes = "Updated notes"
+    preset.billable = False
     db.update_preset(preset)
 
     presets = db.get_presets()
     assert presets[0].notes == "Updated notes"
+    assert presets[0].billable is False
 
     db.delete_preset(preset_id)
     assert len(db.get_presets()) == 0
@@ -253,6 +256,49 @@ def test_db_import_from_json(tmp_path):
     presets = db.get_presets()
     assert len(presets) == 1
     assert presets[0].name == "Preset1"
+    db.close()
+
+
+def test_db_hours_by_psp(tmp_path):
+    db = _make_db(tmp_path)
+    monday = date(2024, 6, 10)
+    tuesday = date(2024, 6, 11)
+
+    db.add_entry(TimeEntry(
+        id=None, date=monday, psp="PSP-A", activity_type="Dev",
+        description="", hours=4.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+    db.add_entry(TimeEntry(
+        id=None, date=tuesday, psp="PSP-A", activity_type="Dev",
+        description="", hours=2.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+    db.add_entry(TimeEntry(
+        id=None, date=monday, psp="PSP-B", activity_type="Test",
+        description="", hours=3.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+
+    # Add a preset to mark PSP-B as non-billable
+    db.add_preset(Preset(id=None, name="B", psp="PSP-B", activity_type="Test", billable=False))
+
+    merged = db.get_hours_by_psp_merged(monday, date(2024, 6, 16))
+    assert len(merged) == 2
+    psp_a = next(d for d in merged if d["psp"] == "PSP-A")
+    psp_b = next(d for d in merged if d["psp"] == "PSP-B")
+    assert psp_a["hours"] == 6.0
+    assert psp_a["billable"] is True
+    assert psp_b["hours"] == 3.0
+    assert psp_b["billable"] is False
+
+    detailed = db.get_hours_by_psp(monday, date(2024, 6, 16))
+    assert len(detailed) == 2
+
+    daily = db.get_daily_hours(monday, date(2024, 6, 16))
+    assert len(daily) == 2
+    assert daily[0]["hours"] == 7.0  # monday: 4+3
+    assert daily[1]["hours"] == 2.0  # tuesday
     db.close()
 
 

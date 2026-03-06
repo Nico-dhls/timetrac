@@ -64,10 +64,20 @@ class Database:
                 name TEXT NOT NULL UNIQUE,
                 psp TEXT NOT NULL DEFAULT '',
                 activity_type TEXT NOT NULL DEFAULT '',
-                notes TEXT NOT NULL DEFAULT ''
+                notes TEXT NOT NULL DEFAULT '',
+                billable INTEGER NOT NULL DEFAULT 1
             );
         """)
         self.conn.commit()
+        self._migrate()
+
+    def _migrate(self):
+        """Run schema migrations for existing databases."""
+        cursor = self.conn.execute("PRAGMA table_info(presets)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "billable" not in columns:
+            self.conn.execute("ALTER TABLE presets ADD COLUMN billable INTEGER NOT NULL DEFAULT 1")
+            self.conn.commit()
 
     def close(self):
         self.conn.close()
@@ -195,7 +205,8 @@ class Database:
     # --- Presets ---
 
     def _row_to_preset(self, row: tuple) -> Preset:
-        return Preset(id=row[0], name=row[1], psp=row[2], activity_type=row[3], notes=row[4])
+        return Preset(id=row[0], name=row[1], psp=row[2], activity_type=row[3], notes=row[4],
+                       billable=bool(row[5]) if len(row) > 5 else True)
 
     def get_presets(self) -> list[Preset]:
         cursor = self.conn.execute("SELECT * FROM presets ORDER BY name")
@@ -203,22 +214,79 @@ class Database:
 
     def add_preset(self, preset: Preset) -> int:
         cursor = self.conn.execute(
-            "INSERT INTO presets (name, psp, activity_type, notes) VALUES (?, ?, ?, ?)",
-            (preset.name, preset.psp, preset.activity_type, preset.notes),
+            "INSERT INTO presets (name, psp, activity_type, notes, billable) VALUES (?, ?, ?, ?, ?)",
+            (preset.name, preset.psp, preset.activity_type, preset.notes, int(preset.billable)),
         )
         self.conn.commit()
         return cursor.lastrowid
 
     def update_preset(self, preset: Preset):
         self.conn.execute(
-            "UPDATE presets SET name=?, psp=?, activity_type=?, notes=? WHERE id=?",
-            (preset.name, preset.psp, preset.activity_type, preset.notes, preset.id),
+            "UPDATE presets SET name=?, psp=?, activity_type=?, notes=?, billable=? WHERE id=?",
+            (preset.name, preset.psp, preset.activity_type, preset.notes, int(preset.billable), preset.id),
         )
         self.conn.commit()
 
     def delete_preset(self, preset_id: int):
         self.conn.execute("DELETE FROM presets WHERE id = ?", (preset_id,))
         self.conn.commit()
+
+    # --- Statistics ---
+
+    def get_hours_by_psp(self, start: date, end: date) -> list[dict]:
+        """Return hours grouped by PSP for a date range, with billable info from presets."""
+        cursor = self.conn.execute(
+            """SELECT e.psp, SUM(e.hours) as total_hours, e.activity_type
+               FROM entries e
+               WHERE e.date BETWEEN ? AND ?
+               GROUP BY e.psp, e.activity_type
+               ORDER BY total_hours DESC""",
+            (start.strftime(DATE_FORMAT), end.strftime(DATE_FORMAT)),
+        )
+        results = []
+        # Build a lookup of PSP -> billable from presets
+        presets = {p.psp: p.billable for p in self.get_presets() if p.psp}
+        for row in cursor.fetchall():
+            psp = row[0]
+            results.append({
+                "psp": psp,
+                "hours": row[1],
+                "activity_type": row[2],
+                "billable": presets.get(psp, True),
+            })
+        return results
+
+    def get_hours_by_psp_merged(self, start: date, end: date) -> list[dict]:
+        """Return hours grouped by PSP only (merging activity types), with billable info."""
+        cursor = self.conn.execute(
+            """SELECT e.psp, SUM(e.hours) as total_hours
+               FROM entries e
+               WHERE e.date BETWEEN ? AND ?
+               GROUP BY e.psp
+               ORDER BY total_hours DESC""",
+            (start.strftime(DATE_FORMAT), end.strftime(DATE_FORMAT)),
+        )
+        presets = {p.psp: p.billable for p in self.get_presets() if p.psp}
+        results = []
+        for row in cursor.fetchall():
+            psp = row[0]
+            results.append({
+                "psp": psp,
+                "hours": row[1],
+                "billable": presets.get(psp, True),
+            })
+        return results
+
+    def get_daily_hours(self, start: date, end: date) -> list[dict]:
+        """Return total hours per day in a date range."""
+        cursor = self.conn.execute(
+            """SELECT date, SUM(hours) FROM entries
+               WHERE date BETWEEN ? AND ?
+               GROUP BY date ORDER BY date""",
+            (start.strftime(DATE_FORMAT), end.strftime(DATE_FORMAT)),
+        )
+        return [{"date": datetime.strptime(row[0], DATE_FORMAT).date(), "hours": row[1]}
+                for row in cursor.fetchall()]
 
     # --- Migration from JSON ---
 
