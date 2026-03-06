@@ -1,2 +1,1 @@
-customtkinter
-packaging
+PySide6>=6.6

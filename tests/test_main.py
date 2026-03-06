@@ -1,6 +1,8 @@
+"""Tests for legacy main.py compatibility and new database layer."""
+
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -8,6 +10,11 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import main
+from timetrac.database import Database
+from timetrac.models import Preset, TimeEntry, TimeMode
+
+
+# --- Legacy main.py tests (backwards compatibility) ---
 
 
 def test_load_data_default_when_missing(tmp_path, monkeypatch):
@@ -73,3 +80,200 @@ def test_collect_recent_values_limit_and_uniqueness():
     values = main.collect_recent_values(entries, "description")
     assert values == ["C", "B", "A"]
     assert len(values) <= main.MAX_RECENTS
+
+
+# --- New database layer tests ---
+
+
+def _make_db(tmp_path) -> Database:
+    return Database(tmp_path / "test.db")
+
+
+def test_db_add_and_get_entry(tmp_path):
+    db = _make_db(tmp_path)
+    entry = TimeEntry(
+        id=None,
+        date=date(2024, 6, 15),
+        psp="PSP-001",
+        activity_type="Entwicklung",
+        description="Feature X",
+        hours=2.5,
+        start_time="08:00",
+        end_time="10:30",
+        mode=TimeMode.RANGE,
+    )
+    entry_id = db.add_entry(entry)
+    assert entry_id is not None
+
+    entries = db.get_entries_for_date(date(2024, 6, 15))
+    assert len(entries) == 1
+    assert entries[0].psp == "PSP-001"
+    assert entries[0].hours == 2.5
+    assert entries[0].mode == TimeMode.RANGE
+    db.close()
+
+
+def test_db_update_entry(tmp_path):
+    db = _make_db(tmp_path)
+    entry = TimeEntry(
+        id=None, date=date(2024, 1, 1), psp="A", activity_type="Dev",
+        description="Test", hours=1.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    )
+    entry_id = db.add_entry(entry)
+
+    entry.id = entry_id
+    entry.hours = 3.0
+    entry.psp = "B"
+    db.update_entry(entry)
+
+    entries = db.get_entries_for_date(date(2024, 1, 1))
+    assert len(entries) == 1
+    assert entries[0].hours == 3.0
+    assert entries[0].psp == "B"
+    db.close()
+
+
+def test_db_delete_entry(tmp_path):
+    db = _make_db(tmp_path)
+    entry = TimeEntry(
+        id=None, date=date(2024, 1, 1), psp="A", activity_type="Dev",
+        description="Test", hours=1.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    )
+    entry_id = db.add_entry(entry)
+    db.delete_entry(entry_id)
+
+    entries = db.get_entries_for_date(date(2024, 1, 1))
+    assert len(entries) == 0
+    db.close()
+
+
+def test_db_day_and_week_totals(tmp_path):
+    db = _make_db(tmp_path)
+    monday = date(2024, 6, 10)
+    tuesday = date(2024, 6, 11)
+
+    db.add_entry(TimeEntry(
+        id=None, date=monday, psp="A", activity_type="Dev",
+        description="", hours=4.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+    db.add_entry(TimeEntry(
+        id=None, date=tuesday, psp="A", activity_type="Dev",
+        description="", hours=3.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+
+    assert db.get_day_total(monday) == 4.0
+    assert db.get_day_total(tuesday) == 3.0
+    assert db.get_week_total(monday) == 7.0
+    assert db.get_week_total(tuesday) == 7.0
+    db.close()
+
+
+def test_db_presets_crud(tmp_path):
+    db = _make_db(tmp_path)
+    preset = Preset(id=None, name="Test", psp="PSP-1", activity_type="Dev", notes="Use format: [TICKET]-desc")
+    preset_id = db.add_preset(preset)
+
+    presets = db.get_presets()
+    assert len(presets) == 1
+    assert presets[0].name == "Test"
+    assert presets[0].notes == "Use format: [TICKET]-desc"
+
+    preset.id = preset_id
+    preset.notes = "Updated notes"
+    db.update_preset(preset)
+
+    presets = db.get_presets()
+    assert presets[0].notes == "Updated notes"
+
+    db.delete_preset(preset_id)
+    assert len(db.get_presets()) == 0
+    db.close()
+
+
+def test_db_recent_values(tmp_path):
+    db = _make_db(tmp_path)
+    for i, psp in enumerate(["A", "B", "A", "C"]):
+        db.add_entry(TimeEntry(
+            id=None, date=date(2024, 1, 1 + i), psp=psp, activity_type="Dev",
+            description="", hours=1.0, start_time="", end_time="",
+            mode=TimeMode.DURATION,
+        ))
+
+    recent = db.get_recent_values("psp")
+    assert "A" in recent
+    assert "B" in recent
+    assert "C" in recent
+    db.close()
+
+
+def test_db_week_summary(tmp_path):
+    db = _make_db(tmp_path)
+    monday = date(2024, 6, 10)
+    db.add_entry(TimeEntry(
+        id=None, date=monday, psp="A", activity_type="Dev",
+        description="", hours=8.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+
+    summary = db.get_week_summary(monday)
+    assert len(summary) == 7
+    assert summary[0].total_hours == 8.0
+    assert summary[1].total_hours == 0.0
+    db.close()
+
+
+def test_db_import_from_json(tmp_path):
+    json_path = tmp_path / "time_entries.json"
+    data = {
+        "entries": {
+            "2024-01-15": [
+                {"psp": "PSP-1", "type": "Dev", "desc": "Work", "hours": 2.0,
+                 "start": "08:00", "end": "10:00", "mode": "range"},
+            ]
+        },
+        "presets": [
+            {"name": "Preset1", "psp": "PSP-1", "type": "Dev"},
+        ],
+    }
+    json_path.write_text(json.dumps(data))
+
+    db = _make_db(tmp_path)
+    count = db.import_from_json(json_path)
+    assert count == 1
+
+    entries = db.get_entries_for_date(date(2024, 1, 15))
+    assert len(entries) == 1
+    assert entries[0].psp == "PSP-1"
+    assert entries[0].activity_type == "Dev"
+
+    presets = db.get_presets()
+    assert len(presets) == 1
+    assert presets[0].name == "Preset1"
+    db.close()
+
+
+def test_db_entries_for_week(tmp_path):
+    db = _make_db(tmp_path)
+    monday = date(2024, 6, 10)
+    wednesday = date(2024, 6, 12)
+
+    db.add_entry(TimeEntry(
+        id=None, date=monday, psp="A", activity_type="Dev",
+        description="Mon work", hours=4.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+    db.add_entry(TimeEntry(
+        id=None, date=wednesday, psp="A", activity_type="Dev",
+        description="Wed work", hours=6.0, start_time="", end_time="",
+        mode=TimeMode.DURATION,
+    ))
+
+    week = db.get_entries_for_week(wednesday)
+    assert len(week[monday]) == 1
+    assert len(week[wednesday]) == 1
+    assert week[monday][0].description == "Mon work"
+    db.close()

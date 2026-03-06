@@ -1,20 +1,22 @@
+import os
 import sys
 from cx_Freeze import setup, Executable
 
-# --- WICHTIG: UUID Generieren ---
-# Damit Windows erkennt, dass eine neue Version ein Update ist (und nicht eine zweite App),
-# braucht man eine feste ID. Ändere diesen Wert NICHT, wenn du Updates veröffentlichst.
-# Du kannst dir online eine UUID generieren oder diese hier nutzen:
-upgrade_code = "{93789642-1234-5678-ABCD-1234567890AB}" 
+upgrade_code = "{93789642-1234-5678-ABCD-1234567890AB}"
+
+# VERSION_PLACEHOLDER is replaced by CI; fall back to 2.0.0 for local builds
+_version = "VERSION_PLACEHOLDER"
+if not _version[0].isdigit():
+    _version = os.environ.get("TIMETRAC_VERSION", "2.0.0")
 
 build_exe_options = {
-    "packages": ["os"], 
-    "excludes": [],
-    "include_files": ["timetable_icon.ico"] 
+    "packages": ["os", "PySide6", "timetrac"],
+    "excludes": ["tkinter", "customtkinter"],
+    "include_files": ["timetable_icon.ico"],
 }
 
 bdist_msi_options = {
-    "initial_target_dir": r"[AppDataFolder]\TimeTrac", # Installiert lokal (%AppData%)
+    "initial_target_dir": r"[AppDataFolder]\TimeTrac",
     "add_to_path": False,
     "install_icon": "timetable_icon.ico",
     "upgrade_code": upgrade_code,
@@ -26,10 +28,9 @@ if sys.platform == "win32":
 
 setup(
     name="TimeTrac",
-    # Dieser Platzhalter "VERSION_PLACEHOLDER" wird gleich von GitHub Actions ersetzt
-    version="VERSION_PLACEHOLDER", 
-    description="TimeTrac Zeiterfassung",
-    author="Nico Dahlhaus", # Taucht in den Datei-Eigenschaften auf
+    version=_version,
+    description="TimeTrac Zeiterfassung für SAP ITP",
+    author="Nico Dahlhaus",
     options={
         "build_exe": build_exe_options,
         "bdist_msi": bdist_msi_options,
@@ -41,6 +42,6 @@ setup(
         icon="timetable_icon.ico",
         shortcut_name="TimeTrac",
         shortcut_dir="DesktopFolder",
-        copyright="© 2025 Nico Dahlhaus" # Taucht in den Datei-Eigenschaften auf
-    )]
+        copyright="© 2025 Nico Dahlhaus",
+    )],
 )
