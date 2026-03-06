@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, Qt, QSize
-from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QBrush, QColor, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSplitter,
     QStatusBar,
@@ -89,7 +90,7 @@ class MainWindow(QMainWindow):
         right_panel = self._build_right_panel()
         splitter.addWidget(right_panel)
 
-        splitter.setSizes([480, 820])
+        splitter.setSizes([520, 780])
         main_layout.addWidget(splitter)
 
         # Status bar
@@ -99,6 +100,12 @@ class MainWindow(QMainWindow):
         self.status_bar.addWidget(self._status_label)
 
     def _build_left_panel(self) -> QWidget:
+        # Wrap in scroll area so nothing gets cut off
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setStyleSheet(f"QScrollArea {{ background-color: {theme.BG_PRIMARY}; border: none; }}")
+
         panel = QFrame()
         panel.setStyleSheet(f"background-color: {theme.BG_PRIMARY};")
         layout = QVBoxLayout(panel)
@@ -278,7 +285,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(timer_card)
         layout.addStretch()
 
-        return panel
+        scroll.setWidget(panel)
+        return scroll
 
     def _build_right_panel(self) -> QWidget:
         panel = QFrame()
@@ -413,9 +421,10 @@ class MainWindow(QMainWindow):
             parent.setFlags(parent.flags() & ~Qt.ItemIsSelectable)
             font = parent.font(0)
             font.setBold(True)
+            group_brush = QBrush(QColor(theme.GROUP_ROW))
             for col in range(4):
                 parent.setFont(col, font)
-                parent.setBackground(col, theme.GROUP_ROW if hasattr(theme, 'GROUP_ROW') else "#2d2250")
+                parent.setBackground(col, group_brush)
             self.day_tree.addTopLevelItem(parent)
 
             for entry in group_entries:
