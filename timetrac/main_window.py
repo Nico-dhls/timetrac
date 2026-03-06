@@ -34,6 +34,7 @@ from . import theme
 from .database import Database
 from .models import Preset, TimeEntry, TimeMode
 from .preset_dialog import PresetManagerDialog
+from .sap_export_dialog import SapExportDialog
 from .widgets import DateNavigator, EditableComboBox, TimeEdit, make_card, make_label
 
 GERMAN_DAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -329,20 +330,25 @@ class MainWindow(QMainWindow):
 
         day_layout.addWidget(day_totals)
 
-        # Copy button
+        # Copy buttons
         copy_layout = QHBoxLayout()
         copy_layout.addStretch()
-        self.copy_btn = QPushButton("Für SAP ITP kopieren")
+        self.copy_btn = QPushButton("Eintrag kopieren")
         self.copy_btn.setObjectName("secondary")
-        self.copy_btn.setToolTip("Ausgewählten Eintrag im SAP ITP-Format in die Zwischenablage kopieren (Ctrl+C)")
+        self.copy_btn.setToolTip("Ausgewählten Eintrag im SAP ITP-Format in die Zwischenablage kopieren")
         self.copy_btn.clicked.connect(self._copy_for_sap)
         copy_layout.addWidget(self.copy_btn)
 
-        self.copy_day_btn = QPushButton("Ganzen Tag kopieren")
+        self.copy_day_btn = QPushButton("Tag kopieren")
         self.copy_day_btn.setObjectName("secondary")
         self.copy_day_btn.setToolTip("Alle Einträge des Tages im SAP ITP-Format kopieren")
         self.copy_day_btn.clicked.connect(self._copy_day_for_sap)
         copy_layout.addWidget(self.copy_day_btn)
+
+        export_day_btn = QPushButton("SAP ITP Export...")
+        export_day_btn.setToolTip("Wochenexport mit editierbarer Vorschau öffnen")
+        export_day_btn.clicked.connect(self._open_sap_export)
+        copy_layout.addWidget(export_day_btn)
 
         day_layout.addLayout(copy_layout)
 
@@ -367,13 +373,13 @@ class MainWindow(QMainWindow):
         self.week_tree.setColumnWidth(1, 120)
         week_layout.addWidget(self.week_tree, 1)
 
-        # Week copy
+        # Week export
         wcopy_layout = QHBoxLayout()
         wcopy_layout.addStretch()
-        copy_week_btn = QPushButton("Woche für SAP ITP kopieren")
-        copy_week_btn.setObjectName("secondary")
-        copy_week_btn.clicked.connect(self._copy_week_for_sap)
-        wcopy_layout.addWidget(copy_week_btn)
+        export_btn = QPushButton("SAP ITP Export...")
+        export_btn.setToolTip("Woche als editierbare Vorschau öffnen und für SAP ITP kopieren")
+        export_btn.clicked.connect(self._open_sap_export)
+        wcopy_layout.addWidget(export_btn)
         week_layout.addLayout(wcopy_layout)
 
         self.tabs.addTab(week_widget, "Wochenansicht")
@@ -773,37 +779,10 @@ class MainWindow(QMainWindow):
         QApplication.clipboard().setText("\n".join(lines))
         self._show_status(f"{len(entries)} Einträge in Zwischenablage kopiert.")
 
-    def _copy_week_for_sap(self):
-        day = self.date_nav.selected_date
-        week_data = self.db.get_entries_for_week(day)
-        start_of_week = day - timedelta(days=day.weekday())
-
-        # Aggregate by (psp, type, desc) across the week
-        aggregated: dict[tuple, list[float]] = {}
-        for d, entries in sorted(week_data.items()):
-            day_index = (d - start_of_week).days
-            for entry in entries:
-                key = (entry.psp, entry.activity_type, entry.description)
-                if key not in aggregated:
-                    aggregated[key] = [0.0] * 7
-                aggregated[key][day_index] += entry.hours
-
-        if not aggregated:
-            QMessageBox.information(self, "Kopieren", "Keine Einträge für diese Woche.")
-            return
-
-        lines = []
-        for (psp, act_type, desc), daily_hours in aggregated.items():
-            day_cols = []
-            for h in daily_hours[:5]:  # Mo-Fr for SAP
-                day_cols.append(f"{h:.2f}".replace(".", ",") if h > 0 else "")
-            # SAP ITP format: Leistungsart \t PSP \t H \t Beschreibung \t Bezeichnung2 \t ME \t Summe \t Mo \t Di \t Mi \t Do \t Fr
-            total = sum(daily_hours[:5])
-            row = [act_type, psp, "", desc, "", "", f"{total:.2f}".replace(".", ",")] + day_cols
-            lines.append("\t".join(row))
-
-        QApplication.clipboard().setText("\r\n".join(lines) + "\r\n")
-        self._show_status(f"Wochendaten in Zwischenablage kopiert ({len(lines)} Zeilen).")
+    def _open_sap_export(self):
+        dialog = SapExportDialog(self.db, self.date_nav.selected_date, self)
+        if dialog.exec():
+            self._show_status("SAP ITP Daten in Zwischenablage kopiert.")
 
     def _entry_to_sap_line(self, entry: TimeEntry) -> str:
         day = entry.date
@@ -814,15 +793,15 @@ class MainWindow(QMainWindow):
         if 0 <= weekday_index < 5:
             day_hours[weekday_index] = hours_text
 
-        # SAP ITP format
+        # SAP GUI ITP: Leistungsart | PSP | Bezeichnung | Bezeichnung | StatKz | ME | Summe | Mo-Fr
         columns = [
             entry.activity_type,
             entry.psp,
-            "",  # H
             entry.description,
-            "",  # Bezeichnung2
+            "",  # Bezeichnung 2
+            "",  # StatKz
             "",  # ME
-            "",  # Summe (auto-calculated)
+            "",  # Summe (auto-calculated by SAP)
             *day_hours,
         ]
         return "\t".join(columns)
