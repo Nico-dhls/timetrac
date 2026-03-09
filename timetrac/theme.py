@@ -96,7 +96,6 @@ STYLESHEET = f"""
         padding: 10px 12px;
         color: {TEXT_PRIMARY};
         selection-background-color: {ACCENT};
-        border-bottom: 2px solid {BG_SECONDARY};
     }}
 
     QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
@@ -124,7 +123,6 @@ STYLESHEET = f"""
         padding: 10px 12px;
         color: {TEXT_PRIMARY};
         min-width: 80px;
-        border-bottom: 2px solid {BG_SECONDARY};
     }}
 
     QComboBox:focus {{
@@ -133,15 +131,11 @@ STYLESHEET = f"""
 
     QComboBox::drop-down {{
         border: none;
-        width: 24px;
+        width: 0px;
     }}
 
-    QComboBox::down-arrow {{
-        image: none;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 6px solid {TEXT_SECONDARY};
-        margin-right: 8px;
+    QComboBox {{
+        padding-right: 8px;
     }}
 
     QComboBox QAbstractItemView {{
@@ -152,97 +146,86 @@ STYLESHEET = f"""
         outline: none;
     }}
 
-    /* Buttons — all interactive, with shadow/scale cues */
+    /* Buttons */
     QPushButton {{
         background-color: {ACCENT};
         color: white;
-        border: none;
+        border: 1px solid {ACCENT};
         border-radius: 6px;
         padding: 8px 16px;
         font-weight: bold;
         min-height: 20px;
-        border-bottom: 2px solid #5b21b6;
     }}
 
     QPushButton:hover {{
         background-color: {ACCENT_HOVER};
-        border-bottom: 2px solid #4c1d95;
-        padding-top: 7px;
-        padding-bottom: 9px;
+        border-color: {ACCENT_HOVER};
     }}
 
     QPushButton:pressed {{
         background-color: #5b21b6;
-        border-bottom: 1px solid #4c1d95;
-        padding-top: 9px;
-        padding-bottom: 8px;
+        border-color: #4c1d95;
     }}
 
     QPushButton:disabled {{
         background-color: {BG_TERTIARY};
         color: {TEXT_MUTED};
-        border-bottom: 2px solid {BORDER};
+        border-color: {BORDER};
     }}
 
     QPushButton#secondary {{
         background-color: transparent;
         border: 1px solid {BORDER};
-        border-bottom: 2px solid {BORDER};
         color: {TEXT_PRIMARY};
         font-weight: normal;
     }}
 
     QPushButton#secondary:hover {{
         background-color: {BG_HOVER};
-        border: 1px solid {ACCENT_LIGHT};
-        border-bottom: 2px solid {ACCENT};
+        border-color: {ACCENT_LIGHT};
         color: {ACCENT_LIGHT};
     }}
 
     QPushButton#secondary:pressed {{
         background-color: {BG_TERTIARY};
-        border-bottom: 1px solid {BORDER};
-        padding-top: 10px;
+        border-color: {BORDER};
     }}
 
     QPushButton#danger {{
         background-color: {DANGER};
-        border-bottom: 2px solid #b91c1c;
+        border-color: {DANGER};
     }}
 
     QPushButton#danger:hover {{
         background-color: {DANGER_HOVER};
-        border-bottom: 2px solid #991b1b;
+        border-color: {DANGER_HOVER};
     }}
 
     QPushButton#danger:pressed {{
         background-color: #b91c1c;
-        border-bottom: 1px solid #991b1b;
-        padding-top: 10px;
+        border-color: #991b1b;
     }}
 
     QPushButton#success {{
         background-color: {SUCCESS};
         color: white;
-        border-bottom: 2px solid #15803d;
+        border-color: {SUCCESS};
     }}
 
     QPushButton#success:hover {{
         background-color: #16a34a;
-        border-bottom: 2px solid #166534;
+        border-color: #16a34a;
     }}
 
     QPushButton#success:pressed {{
         background-color: #15803d;
-        border-bottom: 1px solid #166534;
-        padding-top: 10px;
+        border-color: #166534;
     }}
 
     QPushButton#flat {{
         background-color: transparent;
         color: {TEXT_SECONDARY};
         border: none;
-        border-bottom: none;
         font-weight: normal;
         padding: 4px 8px;
     }}
@@ -250,19 +233,16 @@ STYLESHEET = f"""
     QPushButton#flat:hover {{
         color: {ACCENT_LIGHT};
         background-color: {BG_HOVER};
-        border-bottom: none;
     }}
 
     QPushButton#flat:pressed {{
         color: {ACCENT};
         background-color: {BG_TERTIARY};
-        border-bottom: none;
     }}
 
     QPushButton#navButton {{
         background-color: transparent;
         border: 1px solid {BORDER};
-        border-bottom: 2px solid {BORDER};
         color: {TEXT_PRIMARY};
         font-weight: normal;
         padding: 6px 12px;
@@ -271,15 +251,13 @@ STYLESHEET = f"""
 
     QPushButton#navButton:hover {{
         background-color: {BG_HOVER};
-        border: 1px solid {ACCENT_LIGHT};
-        border-bottom: 2px solid {ACCENT};
+        border-color: {ACCENT_LIGHT};
         color: {ACCENT_LIGHT};
     }}
 
     QPushButton#navButton:pressed {{
         background-color: {BG_TERTIARY};
-        border-bottom: 1px solid {BORDER};
-        padding-top: 8px;
+        border-color: {BORDER};
     }}
 
     /* Checkbox styling */
@@ -492,7 +470,6 @@ STYLESHEET = f"""
         font-weight: normal;
         padding: 6px 14px;
         font-size: 12px;
-        border-bottom: 2px solid {BORDER};
     }}
 
     QPushButton#segmentRight {{
@@ -505,13 +482,11 @@ STYLESHEET = f"""
         font-weight: normal;
         padding: 6px 14px;
         font-size: 12px;
-        border-bottom: 2px solid {BORDER};
     }}
 
     QPushButton#segmentLeft:checked, QPushButton#segmentRight:checked {{
         background-color: {ACCENT};
         border-color: {ACCENT};
-        border-bottom: 2px solid #5b21b6;
         color: white;
         font-weight: bold;
     }}
