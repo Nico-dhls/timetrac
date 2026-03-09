@@ -37,7 +37,7 @@ from .models import Preset, TimeEntry, TimeMode
 from .preset_dialog import PresetManagerDialog
 from .sap_export_dialog import SapExportDialog
 from .statistics_dialog import StatisticsDialog
-from .widgets import DateNavigator, EditableComboBox, TimeEdit, make_card, make_label
+from .widgets import DateNavigator, EditableComboBox, TimeEdit, make_card, make_divider, make_label
 
 GERMAN_DAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 GERMAN_DAYS_FULL = [
@@ -101,7 +101,6 @@ class MainWindow(QMainWindow):
         self.status_bar.addWidget(self._status_label)
 
     def _build_left_panel(self) -> QWidget:
-        # Wrap in scroll area so nothing gets cut off
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -110,24 +109,26 @@ class MainWindow(QMainWindow):
         panel = QFrame()
         panel.setStyleSheet(f"background-color: {theme.BG_PRIMARY};")
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
 
         # Title
         layout.addWidget(make_label("Zeiterfassung", "title"))
         layout.addWidget(make_label("Erfasse Zeiten für SAP ITP.", "subtitle"))
+        layout.addSpacing(4)
 
         # Date navigator
         self.date_nav = DateNavigator()
         self.date_nav.date_changed.connect(self._on_date_changed)
         layout.addWidget(self.date_nav)
 
-        # Preset selector
-        preset_card = make_card()
-        preset_layout = QHBoxLayout(preset_card)
-        preset_layout.setContentsMargins(12, 10, 12, 10)
+        layout.addWidget(make_divider())
 
-        preset_layout.addWidget(QLabel("Vorlage:"))
+        # Preset selector
+        preset_layout = QHBoxLayout()
+        preset_layout.setSpacing(8)
+
+        preset_layout.addWidget(make_label("Vorlage:", "sectionLabel"))
         self.preset_combo = QComboBox()
         self.preset_combo.setMinimumWidth(150)
         self.preset_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -139,7 +140,7 @@ class MainWindow(QMainWindow):
         manage_btn.clicked.connect(self._open_preset_manager)
         preset_layout.addWidget(manage_btn)
 
-        layout.addWidget(preset_card)
+        layout.addLayout(preset_layout)
 
         # Notes hint (shown when preset has notes)
         self.notes_hint = QLabel("")
@@ -148,39 +149,52 @@ class MainWindow(QMainWindow):
         self.notes_hint.setVisible(False)
         layout.addWidget(self.notes_hint)
 
-        # PSP + Activity type
-        fields_card = make_card()
-        fields_grid = QGridLayout(fields_card)
-        fields_grid.setContentsMargins(12, 10, 12, 10)
-        fields_grid.setSpacing(8)
+        layout.addWidget(make_divider())
 
-        fields_grid.addWidget(make_label("PSP:", "sectionLabel"), 0, 0)
-        fields_grid.addWidget(make_label("Leistungsart:", "sectionLabel"), 0, 1)
+        # PSP + Activity type
+        layout.addWidget(make_label("PSP & Leistungsart", "sectionLabel"))
+
+        fields_layout = QHBoxLayout()
+        fields_layout.setSpacing(12)
 
         self.psp_combo = EditableComboBox()
-        self.psp_combo.setPlaceholderText("PSP-Element (optional)")
-        fields_grid.addWidget(self.psp_combo, 1, 0)
+        self.psp_combo.setPlaceholderText("PSP-Element")
+        fields_layout.addWidget(self.psp_combo, 1)
 
         self.type_combo = EditableComboBox()
-        self.type_combo.setPlaceholderText("z.B. Entwicklung")
-        fields_grid.addWidget(self.type_combo, 1, 1)
+        self.type_combo.setPlaceholderText("Leistungsart")
+        fields_layout.addWidget(self.type_combo, 1)
 
-        layout.addWidget(fields_card)
+        layout.addLayout(fields_layout)
+
+        layout.addWidget(make_divider())
 
         # Time input
-        time_card = make_card()
-        time_layout = QVBoxLayout(time_card)
-        time_layout.setContentsMargins(12, 10, 12, 10)
-        time_layout.setSpacing(8)
-
         time_header = QHBoxLayout()
-        time_header.addWidget(make_label("Zeit:", "sectionLabel"))
-        self.mode_btn = QPushButton("Modus: Stunden")
-        self.mode_btn.setObjectName("flat")
-        self.mode_btn.clicked.connect(self._toggle_time_mode)
+        time_header.addWidget(make_label("Zeit", "sectionLabel"))
         time_header.addStretch()
-        time_header.addWidget(self.mode_btn)
-        time_layout.addLayout(time_header)
+
+        # Segmented control for mode toggle
+        segment_layout = QHBoxLayout()
+        segment_layout.setSpacing(0)
+
+        self.duration_seg_btn = QPushButton("Dauer")
+        self.duration_seg_btn.setObjectName("segmentLeft")
+        self.duration_seg_btn.setCheckable(True)
+        self.duration_seg_btn.setChecked(True)
+        self.duration_seg_btn.clicked.connect(lambda: self._set_time_mode(TimeMode.DURATION))
+
+        self.range_seg_btn = QPushButton("Zeitspanne")
+        self.range_seg_btn.setObjectName("segmentRight")
+        self.range_seg_btn.setCheckable(True)
+        self.range_seg_btn.setChecked(False)
+        self.range_seg_btn.clicked.connect(lambda: self._set_time_mode(TimeMode.RANGE))
+
+        segment_layout.addWidget(self.duration_seg_btn)
+        segment_layout.addWidget(self.range_seg_btn)
+        time_header.addLayout(segment_layout)
+
+        layout.addLayout(time_header)
 
         # Range mode
         self.range_widget = QWidget()
@@ -196,7 +210,8 @@ class MainWindow(QMainWindow):
         self.end_edit = TimeEdit("17:00")
         range_layout.addWidget(self.end_edit)
 
-        time_layout.addWidget(self.range_widget)
+        layout.addWidget(self.range_widget)
+        self.range_widget.setVisible(False)
 
         # Duration mode
         self.duration_widget = QWidget()
@@ -212,59 +227,56 @@ class MainWindow(QMainWindow):
         dur_layout.addWidget(self.hours_spin)
         dur_layout.addStretch()
 
-        time_layout.addWidget(self.duration_widget)
-        self.duration_widget.setVisible(False)
-        self._time_mode = TimeMode.RANGE
+        layout.addWidget(self.duration_widget)
+        self.duration_widget.setVisible(True)
+        self._time_mode = TimeMode.DURATION
 
-        layout.addWidget(time_card)
+        layout.addWidget(make_divider())
 
         # Description
-        desc_card = make_card()
-        desc_layout = QVBoxLayout(desc_card)
-        desc_layout.setContentsMargins(12, 10, 12, 10)
-        desc_layout.setSpacing(6)
-
-        desc_layout.addWidget(make_label("Beschreibung:", "sectionLabel"))
+        layout.addWidget(make_label("Beschreibung", "sectionLabel"))
         self.desc_combo = EditableComboBox()
         self.desc_combo.setPlaceholderText("Kurzbeschreibung der Tätigkeit")
-        desc_layout.addWidget(self.desc_combo)
+        layout.addWidget(self.desc_combo)
 
-        layout.addWidget(desc_card)
+        layout.addSpacing(8)
 
         # Action buttons
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
 
         self.save_btn = QPushButton("Eintrag hinzufügen")
-        self.save_btn.setMinimumHeight(38)
+        self.save_btn.setMinimumHeight(40)
         self.save_btn.clicked.connect(self._save_entry)
 
         self.update_btn = QPushButton("Aktualisieren")
-        self.update_btn.setMinimumHeight(38)
+        self.update_btn.setMinimumHeight(40)
         self.update_btn.clicked.connect(self._save_entry)
         self.update_btn.setVisible(False)
 
         self.reset_btn = QPushButton("Neu")
         self.reset_btn.setObjectName("secondary")
-        self.reset_btn.setMinimumHeight(38)
+        self.reset_btn.setMinimumHeight(40)
         self.reset_btn.clicked.connect(self._reset_form)
 
         self.delete_btn = QPushButton("Löschen")
         self.delete_btn.setObjectName("danger")
-        self.delete_btn.setMinimumHeight(38)
+        self.delete_btn.setMinimumHeight(40)
         self.delete_btn.clicked.connect(self._delete_entry)
 
         btn_layout.addWidget(self.save_btn, 2)
         btn_layout.addWidget(self.update_btn, 2)
-        btn_layout.addWidget(self.reset_btn)
-        btn_layout.addWidget(self.delete_btn)
+        btn_layout.addWidget(self.reset_btn, 1)
+        btn_layout.addWidget(self.delete_btn, 1)
 
         layout.addLayout(btn_layout)
+
+        layout.addWidget(make_divider())
 
         # Timer
         timer_card = make_card()
         timer_layout = QHBoxLayout(timer_card)
-        timer_layout.setContentsMargins(12, 12, 12, 12)
+        timer_layout.setContentsMargins(16, 14, 16, 14)
 
         self.timer_btn = QPushButton("Timer starten")
         self.timer_btn.setObjectName("secondary")
@@ -563,18 +575,12 @@ class MainWindow(QMainWindow):
         self.desc_combo.text = entry.description
 
         if entry.mode == TimeMode.RANGE:
-            self._time_mode = TimeMode.RANGE
+            self._set_time_mode(TimeMode.RANGE)
             self.start_edit.text = entry.start_time
             self.end_edit.text = entry.end_time
-            self.range_widget.setVisible(True)
-            self.duration_widget.setVisible(False)
-            self.mode_btn.setText("Modus: Stunden")
         else:
-            self._time_mode = TimeMode.DURATION
+            self._set_time_mode(TimeMode.DURATION)
             self.hours_spin.setValue(entry.hours)
-            self.range_widget.setVisible(False)
-            self.duration_widget.setVisible(True)
-            self.mode_btn.setText("Modus: Zeitspanne")
 
         self._toggle_edit_mode(True)
 
@@ -603,17 +609,13 @@ class MainWindow(QMainWindow):
         else:
             self.notes_hint.setVisible(False)
 
-    def _toggle_time_mode(self):
-        if self._time_mode == TimeMode.RANGE:
-            self._time_mode = TimeMode.DURATION
-            self.range_widget.setVisible(False)
-            self.duration_widget.setVisible(True)
-            self.mode_btn.setText("Modus: Zeitspanne")
-        else:
-            self._time_mode = TimeMode.RANGE
-            self.range_widget.setVisible(True)
-            self.duration_widget.setVisible(False)
-            self.mode_btn.setText("Modus: Stunden")
+    def _set_time_mode(self, mode: TimeMode):
+        self._time_mode = mode
+        is_range = mode == TimeMode.RANGE
+        self.range_widget.setVisible(is_range)
+        self.duration_widget.setVisible(not is_range)
+        self.range_seg_btn.setChecked(is_range)
+        self.duration_seg_btn.setChecked(not is_range)
 
     # --- CRUD ---
 
@@ -707,10 +709,7 @@ class MainWindow(QMainWindow):
         self.start_edit.text = ""
         self.end_edit.text = ""
         self.hours_spin.setValue(0.0)
-        self._time_mode = TimeMode.RANGE
-        self.range_widget.setVisible(True)
-        self.duration_widget.setVisible(False)
-        self.mode_btn.setText("Modus: Stunden")
+        self._set_time_mode(TimeMode.DURATION)
         self.notes_hint.setVisible(False)
         self._toggle_edit_mode(False)
         self.day_tree.clearSelection()
@@ -721,10 +720,7 @@ class MainWindow(QMainWindow):
         if self._timer_start is None:
             self._timer_start = datetime.now()
             self.start_edit.text = self._timer_start.strftime("%H:%M")
-            self._time_mode = TimeMode.RANGE
-            self.range_widget.setVisible(True)
-            self.duration_widget.setVisible(False)
-            self.mode_btn.setText("Modus: Stunden")
+            self._set_time_mode(TimeMode.RANGE)
 
             self.timer_btn.setText("Timer beenden")
             self.timer_btn.setObjectName("success")
