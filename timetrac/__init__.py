@@ -1,3 +1,3 @@
 """TimeTrac - Time tracking for SAP ITP."""
 
-__version__ = "2.1.2"
+__version__ = "2.1.3"

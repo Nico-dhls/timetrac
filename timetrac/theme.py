@@ -132,8 +132,14 @@ STYLESHEET = f"""
     QComboBox::drop-down {{
         subcontrol-origin: padding;
         subcontrol-position: center right;
-        width: 20px;
+        width: 24px;
         border: none;
+    }}
+
+    QComboBox::down-arrow {{
+        image: url(ARROW_PATH_PLACEHOLDER);
+        width: 10px;
+        height: 10px;
     }}
 
     QComboBox QAbstractItemView {{
@@ -501,8 +507,35 @@ STYLESHEET = f"""
 """
 
 
+def _create_arrow_icon() -> str:
+    """Create a small chevron-down icon and return the file path."""
+    import tempfile
+    from PySide6.QtCore import Qt, QPointF
+    from PySide6.QtGui import QPainter, QPixmap, QPen
+
+    pixmap = QPixmap(10, 10)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor(TEXT_SECONDARY))
+    pen.setWidthF(1.5)
+    painter.setPen(pen)
+    # Draw a small "V" chevron
+    painter.drawLine(QPointF(2, 3.5), QPointF(5, 7))
+    painter.drawLine(QPointF(5, 7), QPointF(8, 3.5))
+    painter.end()
+
+    path = tempfile.mktemp(suffix=".png")
+    pixmap.save(path)
+    return path
+
+
 def apply_theme(app: QApplication):
-    app.setStyleSheet(STYLESHEET)
+    arrow_path = _create_arrow_icon()
+    # Qt stylesheet needs forward slashes in paths
+    arrow_path_css = arrow_path.replace("\\", "/")
+    stylesheet = STYLESHEET.replace("ARROW_PATH_PLACEHOLDER", arrow_path_css)
+    app.setStyleSheet(stylesheet)
 
     # Set pointing hand cursor on all buttons globally
     from PySide6.QtCore import Qt
