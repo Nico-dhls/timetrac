@@ -305,22 +305,21 @@ class MainWindow(QMainWindow):
         panel = QFrame()
         panel.setStyleSheet(f"background-color: {theme.BG_PRIMARY};")
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(20, 24, 20, 20)
         layout.setSpacing(12)
 
-        header_layout = QHBoxLayout()
-        header_layout.addWidget(make_label("Übersicht", "title"))
-        header_layout.addStretch()
+        # Tab bar with Statistik button on the right
+        tab_header = QHBoxLayout()
+
+        self.tabs = QTabWidget()
 
         stats_btn = QPushButton("Statistik")
-        stats_btn.setObjectName("secondary")
+        stats_btn.setObjectName("flat")
         stats_btn.setToolTip("Zeitstatistik nach PSP anzeigen")
         stats_btn.clicked.connect(self._open_statistics)
-        header_layout.addWidget(stats_btn)
-        layout.addLayout(header_layout)
-
-        # Tabs: Day view / Week view
-        self.tabs = QTabWidget()
+        tab_header.addStretch()
+        tab_header.addWidget(stats_btn)
+        layout.addLayout(tab_header)
 
         # --- Day tab ---
         day_widget = QWidget()
@@ -328,16 +327,17 @@ class MainWindow(QMainWindow):
         day_layout.setContentsMargins(0, 10, 0, 0)
 
         self.day_tree = QTreeWidget()
-        self.day_tree.setHeaderLabels(["PSP", "Leistungsart", "Beschreibung", "Stunden"])
-        self.day_tree.setRootIsDecorated(True)
+        self.day_tree.setHeaderLabels(["PSP", "Leistungsart", "Beschreibung", "Zeit", "Stunden"])
+        self.day_tree.setRootIsDecorated(False)
         self.day_tree.setAlternatingRowColors(True)
         self.day_tree.header().setStretchLastSection(False)
         self.day_tree.header().setSectionResizeMode(0, QHeaderView.Interactive)
         self.day_tree.header().setSectionResizeMode(1, QHeaderView.Interactive)
         self.day_tree.header().setSectionResizeMode(2, QHeaderView.Stretch)
         self.day_tree.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.day_tree.setColumnWidth(0, 130)
-        self.day_tree.setColumnWidth(1, 140)
+        self.day_tree.header().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.day_tree.setColumnWidth(0, 120)
+        self.day_tree.setColumnWidth(1, 120)
         self.day_tree.currentItemChanged.connect(self._on_entry_selected)
         self.day_tree.setContextMenuPolicy(Qt.CustomContextMenu)
         day_layout.addWidget(self.day_tree, 1)
@@ -349,13 +349,13 @@ class MainWindow(QMainWindow):
         totals_layout.setContentsMargins(16, 12, 16, 12)
 
         self.day_total_label = QLabel("Summe Tag: 0,00 h")
-        self.day_total_label.setStyleSheet("font-size: 15px; font-weight: bold;")
+        self.day_total_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         totals_layout.addWidget(self.day_total_label)
 
         totals_layout.addStretch()
 
         self.week_total_label = QLabel("Woche: 0,00 h")
-        self.week_total_label.setStyleSheet(f"font-size: 15px; font-weight: bold; color: {theme.TEXT_SECONDARY};")
+        self.week_total_label.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {theme.TEXT_SECONDARY};")
         totals_layout.addWidget(self.week_total_label)
 
         day_layout.addWidget(day_totals)
@@ -438,31 +438,39 @@ class MainWindow(QMainWindow):
             groups.setdefault(key, []).append(entry)
 
         for (psp, act_type, desc), group_entries in groups.items():
-            group_hours = sum(e.hours for e in group_entries)
-            parent = QTreeWidgetItem([psp, act_type, desc, f"{group_hours:.2f}"])
-            parent.setFlags(parent.flags() & ~Qt.ItemIsSelectable)
-            font = parent.font(0)
-            font.setBold(True)
-            group_brush = QBrush(QColor(theme.GROUP_ROW))
-            for col in range(4):
-                parent.setFont(col, font)
-                parent.setBackground(col, group_brush)
-            self.day_tree.addTopLevelItem(parent)
-
+            # Add individual entry rows
             for entry in group_entries:
                 time_info = ""
                 if entry.start_time and entry.end_time:
-                    time_info = f"{entry.start_time}-{entry.end_time}"
-                child = QTreeWidgetItem([
+                    time_info = f"{entry.start_time}\u2013{entry.end_time}"
+                item = QTreeWidgetItem([
                     entry.psp,
                     entry.activity_type,
-                    f"{entry.description}  {time_info}".strip() if time_info else entry.description,
+                    entry.description,
+                    time_info if time_info else "\u2013",
                     f"{entry.hours:.2f}",
                 ])
-                child.setData(0, Qt.UserRole, entry.id)
-                parent.addChild(child)
+                item.setData(0, Qt.UserRole, entry.id)
+                self.day_tree.addTopLevelItem(item)
 
-            parent.setExpanded(True)
+            # Add group summary row only when 2+ entries share the same key
+            if len(group_entries) > 1:
+                group_hours = sum(e.hours for e in group_entries)
+                summary = QTreeWidgetItem([
+                    "",
+                    "",
+                    f"Summe: {desc}",
+                    "",
+                    f"{group_hours:.2f}",
+                ])
+                summary.setFlags(summary.flags() & ~Qt.ItemIsSelectable)
+                font = summary.font(0)
+                font.setBold(True)
+                group_brush = QBrush(QColor(theme.GROUP_ROW))
+                for col in range(5):
+                    summary.setFont(col, font)
+                    summary.setBackground(col, group_brush)
+                self.day_tree.addTopLevelItem(summary)
 
     def _refresh_week_view(self):
         self.week_tree.clear()
@@ -763,23 +771,13 @@ class MainWindow(QMainWindow):
 
         entry_id = current.data(0, Qt.UserRole)
         if entry_id is None:
-            # It's a group header — copy all children
-            lines = []
-            for i in range(current.childCount()):
-                child = current.child(i)
-                child_id = child.data(0, Qt.UserRole)
-                if child_id:
-                    entries = self.db.get_entries_for_date(self.date_nav.selected_date)
-                    entry = next((e for e in entries if e.id == child_id), None)
-                    if entry:
-                        lines.append(self._entry_to_sap_line(entry))
-            text = "\n".join(lines)
-        else:
-            entries = self.db.get_entries_for_date(self.date_nav.selected_date)
-            entry = next((e for e in entries if e.id == entry_id), None)
-            if not entry:
-                return
-            text = self._entry_to_sap_line(entry)
+            return  # Summary row, not an entry
+
+        entries = self.db.get_entries_for_date(self.date_nav.selected_date)
+        entry = next((e for e in entries if e.id == entry_id), None)
+        if not entry:
+            return
+        text = self._entry_to_sap_line(entry)
 
         QApplication.clipboard().setText(text)
         self._show_status("In Zwischenablage kopiert.")
