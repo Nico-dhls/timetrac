@@ -56,7 +56,7 @@ STYLESHEET = f"""
     }}
 
     QLabel#title {{
-        font-size: 22px;
+        font-size: 24px;
         font-weight: bold;
     }}
 
@@ -66,10 +66,11 @@ STYLESHEET = f"""
     }}
 
     QLabel#sectionLabel {{
-        font-size: 12px;
+        font-size: 11px;
         color: {TEXT_SECONDARY};
         font-weight: bold;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
     }}
 
     QLabel#timerDisplay {{
@@ -92,9 +93,10 @@ STYLESHEET = f"""
         background-color: {BG_TERTIARY};
         border: 1px solid {BORDER};
         border-radius: 6px;
-        padding: 8px 12px;
+        padding: 10px 12px;
         color: {TEXT_PRIMARY};
         selection-background-color: {ACCENT};
+        border-bottom: 2px solid {BG_SECONDARY};
     }}
 
     QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
@@ -119,9 +121,10 @@ STYLESHEET = f"""
         background-color: {BG_TERTIARY};
         border: 1px solid {BORDER};
         border-radius: 6px;
-        padding: 8px 12px;
+        padding: 10px 12px;
         color: {TEXT_PRIMARY};
         min-width: 80px;
+        border-bottom: 2px solid {BG_SECONDARY};
     }}
 
     QComboBox:focus {{
@@ -158,12 +161,12 @@ STYLESHEET = f"""
         padding: 8px 16px;
         font-weight: bold;
         min-height: 20px;
-        border-bottom: 3px solid #5b21b6;
+        border-bottom: 2px solid #5b21b6;
     }}
 
     QPushButton:hover {{
         background-color: {ACCENT_HOVER};
-        border-bottom: 3px solid #4c1d95;
+        border-bottom: 2px solid #4c1d95;
         padding-top: 7px;
         padding-bottom: 9px;
     }}
@@ -171,7 +174,7 @@ STYLESHEET = f"""
     QPushButton:pressed {{
         background-color: #5b21b6;
         border-bottom: 1px solid #4c1d95;
-        padding-top: 10px;
+        padding-top: 9px;
         padding-bottom: 8px;
     }}
 
@@ -184,7 +187,7 @@ STYLESHEET = f"""
     QPushButton#secondary {{
         background-color: transparent;
         border: 1px solid {BORDER};
-        border-bottom: 3px solid {BORDER};
+        border-bottom: 2px solid {BORDER};
         color: {TEXT_PRIMARY};
         font-weight: normal;
     }}
@@ -192,7 +195,7 @@ STYLESHEET = f"""
     QPushButton#secondary:hover {{
         background-color: {BG_HOVER};
         border: 1px solid {ACCENT_LIGHT};
-        border-bottom: 3px solid {ACCENT};
+        border-bottom: 2px solid {ACCENT};
         color: {ACCENT_LIGHT};
     }}
 
@@ -204,12 +207,12 @@ STYLESHEET = f"""
 
     QPushButton#danger {{
         background-color: {DANGER};
-        border-bottom: 3px solid #b91c1c;
+        border-bottom: 2px solid #b91c1c;
     }}
 
     QPushButton#danger:hover {{
         background-color: {DANGER_HOVER};
-        border-bottom: 3px solid #991b1b;
+        border-bottom: 2px solid #991b1b;
     }}
 
     QPushButton#danger:pressed {{
@@ -221,12 +224,12 @@ STYLESHEET = f"""
     QPushButton#success {{
         background-color: {SUCCESS};
         color: white;
-        border-bottom: 3px solid #15803d;
+        border-bottom: 2px solid #15803d;
     }}
 
     QPushButton#success:hover {{
         background-color: #16a34a;
-        border-bottom: 3px solid #166534;
+        border-bottom: 2px solid #166534;
     }}
 
     QPushButton#success:pressed {{
@@ -259,7 +262,7 @@ STYLESHEET = f"""
     QPushButton#navButton {{
         background-color: transparent;
         border: 1px solid {BORDER};
-        border-bottom: 3px solid {BORDER};
+        border-bottom: 2px solid {BORDER};
         color: {TEXT_PRIMARY};
         font-weight: normal;
         padding: 6px 12px;
@@ -269,7 +272,7 @@ STYLESHEET = f"""
     QPushButton#navButton:hover {{
         background-color: {BG_HOVER};
         border: 1px solid {ACCENT_LIGHT};
-        border-bottom: 3px solid {ACCENT};
+        border-bottom: 2px solid {ACCENT};
         color: {ACCENT_LIGHT};
     }}
 
@@ -401,10 +404,12 @@ STYLESHEET = f"""
     QTabBar::tab {{
         background-color: {BG_TERTIARY};
         color: {TEXT_SECONDARY};
-        padding: 8px 20px;
+        padding: 10px 20px;
         border: none;
         border-bottom: 2px solid transparent;
         margin-right: 2px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
     }}
 
     QTabBar::tab:selected {{
@@ -465,6 +470,60 @@ STYLESHEET = f"""
         background-color: {BG_TERTIARY};
         border-bottom: 1px solid {BORDER};
         padding: 4px;
+    }}
+
+    /* Divider */
+    QFrame#divider {{
+        background-color: {BORDER};
+        border: none;
+        max-height: 1px;
+        min-height: 1px;
+    }}
+
+    /* Segmented controls */
+    QPushButton#segmentLeft {{
+        background-color: transparent;
+        border: 1px solid {BORDER};
+        border-right: none;
+        border-radius: 0px;
+        border-top-left-radius: 6px;
+        border-bottom-left-radius: 6px;
+        color: {TEXT_SECONDARY};
+        font-weight: normal;
+        padding: 6px 14px;
+        font-size: 12px;
+        border-bottom: 2px solid {BORDER};
+    }}
+
+    QPushButton#segmentRight {{
+        background-color: transparent;
+        border: 1px solid {BORDER};
+        border-radius: 0px;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+        color: {TEXT_SECONDARY};
+        font-weight: normal;
+        padding: 6px 14px;
+        font-size: 12px;
+        border-bottom: 2px solid {BORDER};
+    }}
+
+    QPushButton#segmentLeft:checked, QPushButton#segmentRight:checked {{
+        background-color: {ACCENT};
+        border-color: {ACCENT};
+        border-bottom: 2px solid #5b21b6;
+        color: white;
+        font-weight: bold;
+    }}
+
+    QPushButton#segmentLeft:hover, QPushButton#segmentRight:hover {{
+        background-color: {BG_HOVER};
+        color: {TEXT_PRIMARY};
+    }}
+
+    QPushButton#segmentLeft:checked:hover, QPushButton#segmentRight:checked:hover {{
+        background-color: {ACCENT_HOVER};
+        color: white;
     }}
 """
 
