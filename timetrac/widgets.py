@@ -49,6 +49,14 @@ def make_label(text: str, object_name: str = "", parent=None) -> QLabel:
     return label
 
 
+def make_divider(parent=None) -> QFrame:
+    """Create a horizontal divider line."""
+    frame = QFrame(parent)
+    frame.setObjectName("divider")
+    frame.setFrameShape(QFrame.HLine)
+    return frame
+
+
 class DateNavigator(QWidget):
     """Date selector with prev/next/today buttons and calendar popup."""
 
