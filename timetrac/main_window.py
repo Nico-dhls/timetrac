@@ -152,18 +152,24 @@ class MainWindow(QMainWindow):
         layout.addWidget(make_divider())
 
         # PSP + Activity type
-        layout.addWidget(make_label("PSP & Leistungsart", "sectionLabel"))
-
         fields_layout = QHBoxLayout()
         fields_layout.setSpacing(12)
 
+        psp_col = QVBoxLayout()
+        psp_col.setSpacing(4)
+        psp_col.addWidget(make_label("PSP", "sectionLabel"))
         self.psp_combo = EditableComboBox()
         self.psp_combo.setPlaceholderText("PSP-Element")
-        fields_layout.addWidget(self.psp_combo, 1)
+        psp_col.addWidget(self.psp_combo)
+        fields_layout.addLayout(psp_col, 1)
 
+        type_col = QVBoxLayout()
+        type_col.setSpacing(4)
+        type_col.addWidget(make_label("Leistungsart", "sectionLabel"))
         self.type_combo = EditableComboBox()
         self.type_combo.setPlaceholderText("Leistungsart")
-        fields_layout.addWidget(self.type_combo, 1)
+        type_col.addWidget(self.type_combo)
+        fields_layout.addLayout(type_col, 1)
 
         layout.addLayout(fields_layout)
 

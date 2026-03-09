@@ -130,12 +130,10 @@ STYLESHEET = f"""
     }}
 
     QComboBox::drop-down {{
+        subcontrol-origin: padding;
+        subcontrol-position: center right;
+        width: 20px;
         border: none;
-        width: 0px;
-    }}
-
-    QComboBox {{
-        padding-right: 8px;
     }}
 
     QComboBox QAbstractItemView {{
