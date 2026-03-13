@@ -382,7 +382,7 @@ class MainWindow(QMainWindow):
         copy_layout.addWidget(self.copy_day_btn)
 
         export_day_btn = QPushButton("SAP ITP Export...")
-        export_day_btn.setToolTip("Wochenexport mit editierbarer Vorschau öffnen")
+        export_day_btn.setToolTip("Tagesexport mit editierbarer Vorschau öffnen")
         export_day_btn.clicked.connect(self._open_sap_export)
         copy_layout.addWidget(export_day_btn)
 
@@ -413,7 +413,7 @@ class MainWindow(QMainWindow):
         wcopy_layout = QHBoxLayout()
         wcopy_layout.addStretch()
         export_btn = QPushButton("SAP ITP Export...")
-        export_btn.setToolTip("Woche als editierbare Vorschau öffnen und für SAP ITP kopieren")
+        export_btn.setToolTip("Tagesexport mit editierbarer Vorschau öffnen")
         export_btn.clicked.connect(self._open_sap_export)
         wcopy_layout.addWidget(export_btn)
         week_layout.addLayout(wcopy_layout)
