@@ -45,10 +45,11 @@ class SapExportDialog(QDialog):
     """
 
     # Automation timing (seconds)
-    NAV_DELAY = 0.15      # Delay between navigation keys
-    POPUP_DELAY = 0.4     # Wait for popup to open
-    TYPE_DELAY = 0.02     # Delay between typed characters
-    ROW_DELAY = 0.3       # Delay between rows
+    START_DELAY = 3       # Countdown before automation starts
+    NAV_DELAY = 0.3       # Delay between navigation keys
+    POPUP_DELAY = 0.8     # Wait for popup to open
+    PASTE_DELAY = 0.2     # Wait after Ctrl+V paste
+    ROW_DELAY = 0.5       # Delay between rows
 
     # Navigation: tabs needed to reach each day column from Leistungsart (column 0)
     # SAP ITP grid: Leistungsart | PSP | Bez1 | Bez2 | StatKz | ME | Summe | Mo | Di | Mi | Do | Fr
@@ -457,6 +458,18 @@ class SapExportDialog(QDialog):
             return  # Weekend, no entries
 
         try:
+            # Countdown before starting
+            for i in range(self.START_DELAY, 0, -1):
+                if not self._automation_running:
+                    return
+                QTimer.singleShot(0, lambda secs=i: self.desc_status.setText(
+                    f"Start in {secs} Sekunden... (SAP fokussieren!)"
+                ))
+                time.sleep(1)
+
+            if not self._automation_running:
+                return
+
             # Navigate to day column (from first row, column 0)
             for _ in range(tabs_to_day):
                 if not self._automation_running:
@@ -474,6 +487,10 @@ class SapExportDialog(QDialog):
                 # Update status on main thread
                 QTimer.singleShot(0, lambda i=idx, d=desc: self._update_automation_status(i, d))
 
+                # Put description in clipboard
+                QTimer.singleShot(0, lambda d=desc: QApplication.clipboard().setText(d))
+                time.sleep(0.1)
+
                 # F2 to open popup
                 keyboard_controller.press(keyboard.Key.f2)
                 keyboard_controller.release(keyboard.Key.f2)
@@ -490,11 +507,13 @@ class SapExportDialog(QDialog):
                 if not self._automation_running:
                     return
 
-                # Type description
+                # Ctrl+V to paste description
                 if desc:
-                    keyboard_controller.type(desc, self.TYPE_DELAY)
-
-                time.sleep(0.1)
+                    keyboard_controller.press(keyboard.Key.ctrl)
+                    keyboard_controller.press('v')
+                    keyboard_controller.release('v')
+                    keyboard_controller.release(keyboard.Key.ctrl)
+                    time.sleep(self.PASTE_DELAY)
 
                 if not self._automation_running:
                     return
