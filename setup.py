@@ -10,7 +10,7 @@ if not _version[0].isdigit():
     _version = os.environ.get("TIMETRAC_VERSION", "2.0.0")
 
 build_exe_options = {
-    "packages": ["os", "PySide6", "timetrac"],
+    "packages": ["os", "PySide6", "timetrac", "pynput"],
     "excludes": ["tkinter", "customtkinter"],
     "include_files": ["timetable_icon.ico"],
 }

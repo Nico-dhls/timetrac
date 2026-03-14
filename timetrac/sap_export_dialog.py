@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from datetime import date
 
+from pynput import keyboard
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
@@ -15,6 +18,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -40,6 +44,16 @@ class SapExportDialog(QDialog):
     Descriptions are editable before copying.
     """
 
+    # Automation timing (seconds)
+    NAV_DELAY = 0.15      # Delay between navigation keys
+    POPUP_DELAY = 0.4     # Wait for popup to open
+    TYPE_DELAY = 0.02     # Delay between typed characters
+    ROW_DELAY = 0.3       # Delay between rows
+
+    # Navigation: tabs needed to reach each day column from Leistungsart (column 0)
+    # SAP ITP grid: Leistungsart | PSP | Bez1 | Bez2 | StatKz | ME | Summe | Mo | Di | Mi | Do | Fr
+    DAY_COLUMN_TABS = [7, 8, 9, 10, 11]  # Mon=7, Tue=8, Wed=9, Thu=10, Fri=11
+
     def __init__(self, db: Database, current_date: date, parent=None):
         super().__init__(parent)
         self.db = db
@@ -51,6 +65,8 @@ class SapExportDialog(QDialog):
         self._rows: list[dict] = []
         self._desc_queue: list[str] = []
         self._desc_index: int = 0
+        self._automation_running = False
+        self._automation_thread = None
 
         self._build_ui()
         self._load_data()
@@ -100,46 +116,73 @@ class SapExportDialog(QDialog):
 
         layout.addWidget(step1_frame)
 
-        # --- Step 2: Description queue ---
+        # --- Step 2: Description entry ---
         step2_frame = QFrame()
         step2_frame.setObjectName("card")
-        step2_layout = QHBoxLayout(step2_frame)
+        step2_layout = QVBoxLayout(step2_frame)
         step2_layout.setContentsMargins(12, 10, 12, 10)
 
-        step2_text = QVBoxLayout()
-        step2_title = QLabel(
-            "Schritt 2:  Beschreibungen nacheinander einfügen"
-        )
+        step2_title = QLabel("Schritt 2:  Kurztext eingeben")
         step2_title.setObjectName("subtitle")
-        step2_text.addWidget(step2_title)
+        step2_layout.addWidget(step2_title)
 
-        self.desc_status = QLabel(
-            "Klicke \"Start\" → dann in SAP jeden Zeitslot doppelklicken → Ctrl+V"
-        )
+        # Mode selection
+        mode_layout = QHBoxLayout()
+        self.auto_radio = QRadioButton("Automatisch")
+        self.auto_radio.setChecked(True)
+        self.auto_radio.setToolTip("Tastatureingaben automatisch an SAP senden")
+        self.manual_radio = QRadioButton("Manuell (Zwischenablage)")
+        self.manual_radio.setToolTip("Beschreibungen einzeln in die Zwischenablage legen")
+        mode_layout.addWidget(self.auto_radio)
+        mode_layout.addWidget(self.manual_radio)
+        mode_layout.addStretch()
+        step2_layout.addLayout(mode_layout)
+
+        # Status and buttons
+        btn_layout = QHBoxLayout()
+        self.desc_status = QLabel("Nach dem Kopieren: SAP fokussieren, dann 'Start'")
         self.desc_status.setStyleSheet(f"color: {theme.TEXT_MUTED}; font-size: 12px;")
-        step2_text.addWidget(self.desc_status)
+        btn_layout.addWidget(self.desc_status, 1)
 
-        self.desc_preview = QLabel("")
-        self.desc_preview.setObjectName("notesHint")
-        self.desc_preview.setVisible(False)
-        step2_text.addWidget(self.desc_preview)
+        self.start_auto_btn = QPushButton("Start")
+        self.start_auto_btn.setMinimumHeight(36)
+        self.start_auto_btn.clicked.connect(self._start_automation)
+        btn_layout.addWidget(self.start_auto_btn)
 
-        step2_layout.addLayout(step2_text, 1)
+        self.stop_btn = QPushButton("Stopp")
+        self.stop_btn.setObjectName("danger")
+        self.stop_btn.setMinimumHeight(36)
+        self.stop_btn.clicked.connect(self._stop_automation)
+        self.stop_btn.setVisible(False)
+        btn_layout.addWidget(self.stop_btn)
 
+        # Manual mode controls (hidden by default)
         self.start_queue_btn = QPushButton("Start")
         self.start_queue_btn.setObjectName("secondary")
         self.start_queue_btn.setMinimumHeight(36)
         self.start_queue_btn.clicked.connect(self._start_description_queue)
-        step2_layout.addWidget(self.start_queue_btn)
+        self.start_queue_btn.setVisible(False)
+        btn_layout.addWidget(self.start_queue_btn)
 
         self.next_desc_btn = QPushButton("Nächste ▶")
         self.next_desc_btn.setMinimumHeight(36)
         self.next_desc_btn.clicked.connect(self._next_description)
         self.next_desc_btn.setVisible(False)
         self.next_desc_btn.setToolTip("Nächste Kurzbeschreibung in Zwischenablage laden")
-        step2_layout.addWidget(self.next_desc_btn)
+        btn_layout.addWidget(self.next_desc_btn)
+
+        step2_layout.addLayout(btn_layout)
+
+        # Preview label for manual mode
+        self.desc_preview = QLabel("")
+        self.desc_preview.setObjectName("notesHint")
+        self.desc_preview.setVisible(False)
+        step2_layout.addWidget(self.desc_preview)
 
         layout.addWidget(step2_frame)
+
+        # Connect mode radio buttons
+        self.auto_radio.toggled.connect(self._update_mode_ui)
 
         # Close
         close_layout = QHBoxLayout()
@@ -326,3 +369,168 @@ class SapExportDialog(QDialog):
             self.next_desc_btn.setText(f"Nächste ▶  ({remaining} übrig)")
         else:
             self.next_desc_btn.setText("Fertig")
+
+    def _update_mode_ui(self):
+        """Toggle UI between automatic and manual mode."""
+        auto_mode = self.auto_radio.isChecked()
+
+        # Show/hide automation buttons
+        self.start_auto_btn.setVisible(auto_mode)
+        self.stop_btn.setVisible(False)  # Always hidden initially
+
+        # Show/hide manual buttons
+        self.start_queue_btn.setVisible(not auto_mode)
+        self.next_desc_btn.setVisible(False)  # Only visible after starting
+
+        # Reset status text
+        if auto_mode:
+            self.desc_status.setText("Nach dem Kopieren: SAP fokussieren, dann 'Start'")
+            self.desc_status.setStyleSheet(f"color: {theme.TEXT_MUTED}; font-size: 12px;")
+        else:
+            self.desc_status.setText("Klicke \"Start\" → dann in SAP jeden Zeitslot doppelklicken → Ctrl+V")
+            self.desc_status.setStyleSheet(f"color: {theme.TEXT_MUTED}; font-size: 12px;")
+
+        self.desc_preview.setVisible(False)
+
+    # --- Step 2: Automatic keyboard automation ---
+
+    def _start_automation(self):
+        """Start keyboard automation for description entry."""
+        # Build description queue
+        self._desc_queue = []
+        for row_idx in range(len(self._rows)):
+            desc = self.table.item(row_idx, 2).text().strip()
+            self._desc_queue.append(desc)
+
+        if not self._desc_queue:
+            self.desc_status.setText("Keine Einträge vorhanden.")
+            return
+
+        self._automation_running = True
+        self._desc_index = 0
+
+        # Update UI
+        self.start_auto_btn.setVisible(False)
+        self.stop_btn.setVisible(True)
+        self.copy_grid_btn.setEnabled(False)
+        self.auto_radio.setEnabled(False)
+        self.manual_radio.setEnabled(False)
+
+        # Start automation in background thread
+        self._automation_thread = threading.Thread(target=self._run_automation, daemon=True)
+        self._automation_thread.start()
+
+    def _stop_automation(self):
+        """Stop the automation."""
+        self._automation_running = False
+        self._finish_automation()
+
+    def _finish_automation(self):
+        """Reset UI after automation completes or is stopped."""
+        # Must run on main thread
+        QTimer.singleShot(0, self._reset_automation_ui)
+
+    def _reset_automation_ui(self):
+        """Reset automation UI state."""
+        self.start_auto_btn.setVisible(True)
+        self.stop_btn.setVisible(False)
+        self.copy_grid_btn.setEnabled(True)
+        self.auto_radio.setEnabled(True)
+        self.manual_radio.setEnabled(True)
+
+        if self._desc_index >= len(self._desc_queue):
+            self.desc_status.setText("Alle Kurztexte eingetragen!")
+            self.desc_status.setStyleSheet(f"color: {theme.SUCCESS}; font-size: 12px; font-weight: bold;")
+        else:
+            self.desc_status.setText(f"Gestoppt bei Eintrag {self._desc_index + 1}/{len(self._desc_queue)}")
+            self.desc_status.setStyleSheet(f"color: {theme.TEXT_MUTED}; font-size: 12px;")
+
+    def _run_automation(self):
+        """Execute the keyboard automation sequence (runs in background thread)."""
+        keyboard_controller = keyboard.Controller()
+        weekday_index = self._selected_date.weekday()
+
+        # Calculate tabs needed to reach day column
+        if 0 <= weekday_index < 5:
+            tabs_to_day = self.DAY_COLUMN_TABS[weekday_index]
+        else:
+            return  # Weekend, no entries
+
+        try:
+            # Navigate to day column (from first row, column 0)
+            for _ in range(tabs_to_day):
+                if not self._automation_running:
+                    return
+                keyboard_controller.press(keyboard.Key.tab)
+                keyboard_controller.release(keyboard.Key.tab)
+                time.sleep(self.NAV_DELAY)
+
+            # Process each row
+            for idx, desc in enumerate(self._desc_queue):
+                if not self._automation_running:
+                    return
+
+                self._desc_index = idx
+                # Update status on main thread
+                QTimer.singleShot(0, lambda i=idx, d=desc: self._update_automation_status(i, d))
+
+                # F2 to open popup
+                keyboard_controller.press(keyboard.Key.f2)
+                keyboard_controller.release(keyboard.Key.f2)
+                time.sleep(self.POPUP_DELAY)
+
+                if not self._automation_running:
+                    return
+
+                # Tab to reach Kurztext field (skip hours field)
+                keyboard_controller.press(keyboard.Key.tab)
+                keyboard_controller.release(keyboard.Key.tab)
+                time.sleep(self.NAV_DELAY)
+
+                if not self._automation_running:
+                    return
+
+                # Type description
+                if desc:
+                    keyboard_controller.type(desc, self.TYPE_DELAY)
+
+                time.sleep(0.1)
+
+                if not self._automation_running:
+                    return
+
+                # Enter to confirm
+                keyboard_controller.press(keyboard.Key.enter)
+                keyboard_controller.release(keyboard.Key.enter)
+                time.sleep(self.ROW_DELAY)
+
+                if not self._automation_running:
+                    return
+
+                # Move to next row (down arrow)
+                if idx < len(self._desc_queue) - 1:
+                    keyboard_controller.press(keyboard.Key.down)
+                    keyboard_controller.release(keyboard.Key.down)
+                    time.sleep(self.NAV_DELAY)
+
+            # Done
+            self._desc_index = len(self._desc_queue)
+            self._finish_automation()
+
+        except Exception as e:
+            QTimer.singleShot(0, lambda: self._show_automation_error(str(e)))
+            self._finish_automation()
+
+    def _update_automation_status(self, index: int, desc: str):
+        """Update status label during automation (called on main thread)."""
+        total = len(self._desc_queue)
+        psp = self._rows[index]["psp"] if index < len(self._rows) else ""
+        self.desc_status.setText(
+            f"Eintrag {index + 1}/{total}: {psp} - {desc[:30]}{'...' if len(desc) > 30 else ''}"
+        )
+        self.desc_status.setStyleSheet(f"color: {theme.ACCENT_LIGHT}; font-size: 12px;")
+
+    def _show_automation_error(self, error: str):
+        """Show automation error message."""
+        self.desc_status.setText(f"Fehler: {error}")
+        self.desc_status.setStyleSheet(f"color: {theme.ERROR}; font-size: 12px;")
