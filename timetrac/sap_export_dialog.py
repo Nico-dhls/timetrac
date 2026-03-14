@@ -16,9 +16,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QStyledItemDelegate,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -27,11 +29,23 @@ from PySide6.QtWidgets import (
 from . import theme
 from .database import Database
 
+# ITP limits
+KURZTEXT_MAX_LENGTH = 40
+
 GERMAN_DAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr"]
 GERMAN_DAYS_FULL = [
     "Montag", "Dienstag", "Mittwoch", "Donnerstag",
     "Freitag", "Samstag", "Sonntag",
 ]
+
+
+class KurztextDelegate(QStyledItemDelegate):
+    """Delegate to limit Kurztext field to 40 characters (ITP limit)."""
+
+    def createEditor(self, parent, option, index):
+        editor = QLineEdit(parent)
+        editor.setMaxLength(KURZTEXT_MAX_LENGTH)
+        return editor
 
 
 class SapExportDialog(QDialog):
@@ -88,7 +102,7 @@ class SapExportDialog(QDialog):
         # Table
         self.table = QTableWidget()
         self.table.setColumnCount(4)  # Leistungsart, PSP, Kurzbeschreibung, Stunden
-        headers = ["Leistungsart", "PSP", "Kurzbeschreibung", "Stunden"]
+        headers = ["Leistungsart", "PSP", f"Kurzbeschreibung (max. {KURZTEXT_MAX_LENGTH})", "Stunden"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -96,6 +110,11 @@ class SapExportDialog(QDialog):
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.table.verticalHeader().setVisible(False)
+
+        # Limit Kurztext column to 40 characters (ITP limit)
+        kurztext_delegate = KurztextDelegate(self)
+        self.table.setItemDelegateForColumn(2, kurztext_delegate)
+
         layout.addWidget(self.table, 1)
 
         # --- Step 1: Copy grid ---
@@ -237,12 +256,17 @@ class SapExportDialog(QDialog):
             psp_item.setFlags(psp_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 1, psp_item)
 
-            # Kurzbeschreibung (editable)
-            desc_text = row["description"]
+            # Kurzbeschreibung (editable, max 40 chars)
+            desc_text = row["description"][:KURZTEXT_MAX_LENGTH]
             hint = preset_notes.get(row["psp"], "")
             desc_item = QTableWidgetItem(desc_text)
+            tooltip_parts = []
+            if len(row["description"]) > KURZTEXT_MAX_LENGTH:
+                tooltip_parts.append(f"Gekürzt von: {row['description']}")
             if hint:
-                desc_item.setToolTip(f"Format-Hinweis: {hint}")
+                tooltip_parts.append(f"Format-Hinweis: {hint}")
+            if tooltip_parts:
+                desc_item.setToolTip("\n".join(tooltip_parts))
             self.table.setItem(row_idx, 2, desc_item)
 
             # Hours (read-only)
@@ -440,8 +464,13 @@ class SapExportDialog(QDialog):
         self.manual_radio.setEnabled(True)
 
         if self._desc_index >= len(self._desc_queue):
-            self.desc_status.setText("Alle Kurztexte eingetragen!")
-            self.desc_status.setStyleSheet(f"color: {theme.SUCCESS}; font-size: 12px; font-weight: bold;")
+            # Show success message and close dialog
+            QMessageBox.information(
+                self,
+                "Export abgeschlossen",
+                f"Alle {len(self._desc_queue)} Kurztexte wurden erfolgreich eingetragen.",
+            )
+            self.accept()  # Close the dialog
         else:
             self.desc_status.setText(f"Gestoppt bei Eintrag {self._desc_index + 1}/{len(self._desc_queue)}")
             self.desc_status.setStyleSheet(f"color: {theme.TEXT_MUTED}; font-size: 12px;")
