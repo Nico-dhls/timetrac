@@ -51,9 +51,9 @@ class SapExportDialog(QDialog):
     PASTE_DELAY = 0.2     # Wait after Ctrl+V paste
     ROW_DELAY = 0.5       # Delay between rows
 
-    # Navigation: tabs needed to reach each day column from Leistungsart (column 0)
-    # SAP ITP grid: Leistungsart | PSP | Bez1 | Bez2 | StatKz | ME | Summe | Mo | Di | Mi | Do | Fr
-    DAY_COLUMN_TABS = [7, 8, 9, 10, 11]  # Mon=7, Tue=8, Wed=9, Thu=10, Fri=11
+    # Navigation: tabs needed to reach each day column from first cell after paste
+    # SAP ITP skips some fields, so: Mon=3, Tue=4, Wed=5, Thu=6, Fri=7
+    DAY_COLUMN_TABS = [3, 4, 5, 6, 7]  # Mon=3, Tue=4, Wed=5, Thu=6, Fri=7
 
     def __init__(self, db: Database, current_date: date, parent=None):
         super().__init__(parent)
