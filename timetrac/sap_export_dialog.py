@@ -47,9 +47,10 @@ class SapExportDialog(QDialog):
     # Automation timing (seconds)
     START_DELAY = 3       # Countdown before automation starts
     NAV_DELAY = 0.4       # Delay between navigation keys
-    POPUP_DELAY = 1.0     # Wait for popup to open
+    POPUP_DELAY = 1.2     # Wait for popup to open
     PASTE_DELAY = 0.3     # Wait after typing
-    ROW_DELAY = 0.6       # Delay after Enter to confirm
+    ENTER_DELAY = 1.0     # Wait after Enter to close popup
+    ROW_DELAY = 0.8       # Delay after down arrow
 
     # Navigation: tabs needed to reach each day column from first cell after paste
     # SAP ITP skips some fields, so: Mon=3, Tue=4, Wed=5, Thu=6, Fri=7
@@ -197,21 +198,20 @@ class SapExportDialog(QDialog):
     def _load_data(self):
         entries = self.db.get_entries_for_date(self._selected_date)
 
-        # Aggregate by (psp, activity_type) — merge descriptions
-        aggregated: dict[tuple[str, str], dict] = {}
+        # Each entry is its own row - don't merge different Kurztexte
+        # Group only by (psp, activity_type, description)
+        aggregated: dict[tuple[str, str, str], dict] = {}
         for entry in entries:
-            key = (entry.psp, entry.activity_type)
+            desc = entry.description or ""
+            key = (entry.psp, entry.activity_type, desc)
             if key not in aggregated:
                 aggregated[key] = {
                     "psp": entry.psp,
                     "activity_type": entry.activity_type,
-                    "descriptions": [],
+                    "description": desc,
                     "hours": 0.0,
                 }
-            row = aggregated[key]
-            row["hours"] += entry.hours
-            if entry.description and entry.description not in row["descriptions"]:
-                row["descriptions"].append(entry.description)
+            aggregated[key]["hours"] += entry.hours
 
         self._rows = list(aggregated.values())
 
@@ -238,7 +238,7 @@ class SapExportDialog(QDialog):
             self.table.setItem(row_idx, 1, psp_item)
 
             # Kurzbeschreibung (editable)
-            desc_text = "; ".join(row["descriptions"])
+            desc_text = row["description"]
             hint = preset_notes.get(row["psp"], "")
             desc_item = QTableWidgetItem(desc_text)
             if hint:
@@ -514,15 +514,16 @@ class SapExportDialog(QDialog):
                 # Enter to confirm
                 keyboard_controller.press(keyboard.Key.enter)
                 keyboard_controller.release(keyboard.Key.enter)
-                time.sleep(self.ROW_DELAY)
+                time.sleep(self.ENTER_DELAY)
 
                 if not self._automation_running:
                     return
 
-                # Move to next row (down arrow)
+                # Move to next row (down arrow) - use KeyCode for reliability
                 if idx < len(self._desc_queue) - 1:
-                    keyboard_controller.press(keyboard.Key.down)
-                    keyboard_controller.release(keyboard.Key.down)
+                    down_key = keyboard.KeyCode.from_vk(40)  # Windows VK_DOWN
+                    keyboard_controller.press(down_key)
+                    keyboard_controller.release(down_key)
                     time.sleep(self.ROW_DELAY)  # Wait for SAP to register row change
 
             # Done
