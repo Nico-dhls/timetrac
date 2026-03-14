@@ -46,10 +46,10 @@ class SapExportDialog(QDialog):
 
     # Automation timing (seconds)
     START_DELAY = 3       # Countdown before automation starts
-    NAV_DELAY = 0.3       # Delay between navigation keys
-    POPUP_DELAY = 0.8     # Wait for popup to open
-    PASTE_DELAY = 0.2     # Wait after Ctrl+V paste
-    ROW_DELAY = 0.5       # Delay between rows
+    NAV_DELAY = 0.4       # Delay between navigation keys
+    POPUP_DELAY = 1.0     # Wait for popup to open
+    PASTE_DELAY = 0.3     # Wait after typing
+    ROW_DELAY = 0.6       # Delay after Enter to confirm
 
     # Navigation: tabs needed to reach each day column from first cell after paste
     # SAP ITP skips some fields, so: Mon=3, Tue=4, Wed=5, Thu=6, Fri=7
@@ -523,7 +523,7 @@ class SapExportDialog(QDialog):
                 if idx < len(self._desc_queue) - 1:
                     keyboard_controller.press(keyboard.Key.down)
                     keyboard_controller.release(keyboard.Key.down)
-                    time.sleep(self.NAV_DELAY)
+                    time.sleep(self.ROW_DELAY)  # Wait for SAP to register row change
 
             # Done
             self._desc_index = len(self._desc_queue)
