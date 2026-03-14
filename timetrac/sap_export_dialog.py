@@ -487,10 +487,6 @@ class SapExportDialog(QDialog):
                 # Update status on main thread
                 QTimer.singleShot(0, lambda i=idx, d=desc: self._update_automation_status(i, d))
 
-                # Put description in clipboard (call directly - Qt handles thread safety)
-                QApplication.clipboard().setText(desc)
-                time.sleep(0.15)  # Wait for clipboard to update
-
                 # F2 to open popup
                 keyboard_controller.press(keyboard.Key.f2)
                 keyboard_controller.release(keyboard.Key.f2)
@@ -507,12 +503,10 @@ class SapExportDialog(QDialog):
                 if not self._automation_running:
                     return
 
-                # Ctrl+V to paste description
-                keyboard_controller.press(keyboard.Key.ctrl)
-                keyboard_controller.press('v')
-                keyboard_controller.release('v')
-                keyboard_controller.release(keyboard.Key.ctrl)
-                time.sleep(self.PASTE_DELAY)
+                # Type description directly
+                if desc:
+                    keyboard_controller.type(desc)
+                    time.sleep(self.PASTE_DELAY)
 
                 if not self._automation_running:
                     return
