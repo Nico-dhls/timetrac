@@ -35,7 +35,7 @@ from . import theme
 from .database import Database
 from .models import Preset, TimeEntry, TimeMode
 from .preset_dialog import PresetManagerDialog
-from .sap_export_dialog import SapExportDialog
+from .sap_export_dialog import KURZTEXT_MAX_LENGTH, SapExportDialog
 from .statistics_dialog import StatisticsDialog
 from .widgets import DateNavigator, EditableComboBox, TimeEdit, make_card, make_divider, make_label
 
@@ -243,6 +243,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(make_label("Beschreibung", "sectionLabel"))
         self.desc_combo = EditableComboBox()
         self.desc_combo.setPlaceholderText("Kurzbeschreibung der Tätigkeit")
+        # Limit to 40 characters for SAP ITP compatibility
+        self.desc_combo.lineEdit().setMaxLength(KURZTEXT_MAX_LENGTH)
         layout.addWidget(self.desc_combo)
 
         layout.addSpacing(8)
@@ -345,6 +347,7 @@ class MainWindow(QMainWindow):
         self.day_tree.setColumnWidth(0, 120)
         self.day_tree.setColumnWidth(1, 120)
         self.day_tree.currentItemChanged.connect(self._on_entry_selected)
+        self.day_tree.itemDoubleClicked.connect(self._on_entry_double_clicked)
         self.day_tree.setContextMenuPolicy(Qt.CustomContextMenu)
         day_layout.addWidget(self.day_tree, 1)
 
@@ -567,16 +570,15 @@ class MainWindow(QMainWindow):
         self._refresh_data()
 
     def _on_entry_selected(self, current, previous):
-        if current is None:
-            self._editing_entry = None
-            self._toggle_edit_mode(False)
-            return
+        """Handle selection change - only clears edit mode, doesn't load entry."""
+        # Single click just selects, double-click loads for editing
+        pass
 
-        entry_id = current.data(0, Qt.UserRole)
+    def _on_entry_double_clicked(self, item, column):
+        """Handle double-click to load entry for editing."""
+        entry_id = item.data(0, Qt.UserRole)
         if entry_id is None:
-            self._editing_entry = None
-            self._toggle_edit_mode(False)
-            return
+            return  # Summary row, not an entry
 
         entries = self.db.get_entries_for_date(self.date_nav.selected_date)
         entry = next((e for e in entries if e.id == entry_id), None)

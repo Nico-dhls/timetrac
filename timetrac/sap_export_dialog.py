@@ -62,8 +62,8 @@ class SapExportDialog(QDialog):
     START_DELAY = 3       # Countdown before automation starts
     NAV_DELAY = 0.4       # Delay between navigation keys
     POPUP_DELAY = 1.2     # Wait for popup to open
-    PASTE_DELAY = 0.3     # Wait after typing
-    ENTER_DELAY = 1.0     # Wait after Enter to close popup
+    PASTE_DELAY = 0.5     # Wait after typing
+    ENTER_DELAY = 1.2     # Wait after Enter to close popup
     ROW_DELAY = 0.8       # Delay after down arrow
 
     # Navigation: tabs needed to reach each day column from first cell after paste
@@ -112,8 +112,9 @@ class SapExportDialog(QDialog):
         self.table.verticalHeader().setVisible(False)
 
         # Limit Kurztext column to 40 characters (ITP limit)
-        kurztext_delegate = KurztextDelegate(self)
-        self.table.setItemDelegateForColumn(2, kurztext_delegate)
+        # Store as instance variable to prevent garbage collection
+        self._kurztext_delegate = KurztextDelegate(self)
+        self.table.setItemDelegateForColumn(2, self._kurztext_delegate)
 
         layout.addWidget(self.table, 1)
 
